@@ -1,0 +1,51 @@
+Define neighborhood
+	Popup form
+Import from SoS
+	Import function
+	Build elections
+	Build voters
+		Extract voters and hx
+Work
+	Sorting
+	Filtering
+	Saving
+	Printing
+	Show demographics
+Update data
+	?
+Share data (caveat emptor)
+
+Turnout
+	total
+	age_group
+	gender
+	party
+	individual(s)?
+	
+New Neighborhood
+----------------
+Clear Streets 
+Click Add Street
+On Save Edits, Prompt for nhood name
+Build voters
+
+Drop Neighborhood
+-----------------
+Confirm
+Delete CSV files
+Reload
+
+Add Street
+----------
+popup street picker
+user may edit From, To, Side
+
+Save Edits
+----------
+if new nhood, get name
+Build nhood
+Build voters
+
+
+
+    

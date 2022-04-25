@@ -1,0 +1,21 @@
+dist
+----
+unzip
+	folders
+		sos files - smallest superset
+	config
+		state, city, sos file names?
+	.exe
+	
+get started
+-----------
+define elections
+define neighborhood(s)
+	UI
+	builds dataset
+	
+work
+----
+query
+update
+share
