@@ -6,7 +6,7 @@ import lib.date_lib as dtl
 
 flds = [
     'last_name', 'first_name', 'middle_name', 'name_suffix',
-    'birth_year', 'gender', 'age_group',
+    'date_of_birth', 'birth_year', 'age_group', 'gender', 'ethnicity',
     'street_address', 'city', 'zipcode', 'county',
     'jurisdiction', 'ward', 'precinct',
     'congress', 'state_senate', 'state_house',
@@ -43,9 +43,8 @@ class Voter(object):
         return me_unit >= oth_unit if ascending else me_unit < oth_unit
 
     @staticmethod
-    def get(nhood):
+    def get(path):
         voters = []
-        path = '%s/my_data/%s_voters.csv' % (os.getcwd(), nhood)
         with open(path, 'r') as f:
             rdr = csv.DictReader(f)
             for row in rdr:

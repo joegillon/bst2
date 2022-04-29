@@ -2,7 +2,7 @@ import os
 import csv
 
 flds = [
-    'voter_id', 'election_id', 'absentee'
+    'voter_id', 'election_id', 'county_id', 'absentee'
 ]
 
 

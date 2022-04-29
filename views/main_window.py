@@ -2,7 +2,7 @@ import wx
 from views.elections_panel import ElectionsPanel
 from views.worksheet_panel import WorksheetPanel
 from views.import_panel import ImportPanel
-from views.new_neighborhood_panel import NewNeighborhoodPanel
+from views.neighborhood_panel import NeighborhoodPanel
 
 
 class MainWindow(wx.Frame):
@@ -18,15 +18,17 @@ class MainWindow(wx.Frame):
         elections_panel = ElectionsPanel(notebook)
         notebook.AddPage(elections_panel, 'Elections')
 
-        new_nhood_panel = NewNeighborhoodPanel(notebook)
-        notebook.AddPage(new_nhood_panel, 'Define Neighborhoods')
+        # new_nhood_panel = NeighborhoodPanel(notebook)
+        # notebook.AddPage(new_nhood_panel, 'Define Neighborhoods')
 
-        work_panel = WorksheetPanel(notebook)
-        notebook.AddPage(work_panel, 'Worksheet')
+        # work_panel = WorksheetPanel(notebook)
+        # notebook.AddPage(work_panel, 'Worksheet')
 
         import_panel = ImportPanel(notebook)
         notebook.AddPage(import_panel, 'Import Data')
 
-        layout.Add(notebook, 0, wx.EXPAND | wx.ALL, 5)
+        layout.Add(notebook, 1, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(layout)
+
+        self.Show()

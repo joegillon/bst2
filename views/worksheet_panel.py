@@ -1,5 +1,5 @@
 import wx
-from views.neighborhood_panel import NeighborhoodPanel
+from views.neighborhood_list_panel import NeighborhoodPanel
 from views.voter_panel import VoterPanel
 from controllers.worksheet_controller import WorksheetController
 import globals as gbl

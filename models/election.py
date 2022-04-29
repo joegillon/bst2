@@ -45,10 +45,8 @@ class Election(object):
         return Election.get('bst')
 
     @staticmethod
-    def get(folder):
+    def get(path):
         elections = []
-        cwd = os.getcwd()
-        path = '%s/%s_data/elections.csv' % (cwd, folder)
         if not os.path.exists(path):
             return []
         with open(path, 'r') as f:
@@ -59,9 +57,7 @@ class Election(object):
         return elections
 
     @staticmethod
-    def save(elections):
-        cwd = os.getcwd()
-        path = '%s/my_data/elections.csv' % (cwd,)
+    def save(path, elections):
         with open(path, 'w', newline='') as f:
             wtr = csv.DictWriter(f, fieldnames=flds)
             wtr.writeheader()

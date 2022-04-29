@@ -1,3 +1,5 @@
+dataset = None
+
 COLOR_SCHEME = {
     'pnlBg': '#09216B',
     'tbBg': '#6ED794',
