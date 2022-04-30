@@ -2,10 +2,10 @@ import wx
 import ObjectListView as olv
 import globals as gbl
 import lib.ui_lib as uil
-from controllers.neighborhood_controller import NeighborhoodController
+# from controllers.neighborhood_controller import NeighborhoodController
 
 
-class NeighborhoodPanel(wx.Panel):
+class NeighborhoodListPanel(wx.Panel):
 
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -43,106 +43,11 @@ class NeighborhoodPanel(wx.Panel):
 
         return panel
 
-    def build_lst_tb_panel(self, parent):
-        panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
-        panel.SetBackgroundColour(gbl.COLOR_SCHEME['tbBg'])
-
-        layout = wx.BoxSizer(wx.HORIZONTAL)
-
-        lbl = uil.toolbar_label(panel, 'Neighborhoods')
-        layout.Add(lbl, 0, wx.ALL, 5)
-
-        self.new_nhood_btn = uil.toolbar_button(panel, 'New Neighborhood')
-        layout.Add(self.new_nhood_btn, 0, wx.ALL, 5)
-
-        self.drop_nhood_btn = uil.toolbar_button(panel, 'Drop Neighborhood')
-        layout.Add(self.drop_nhood_btn, 0, wx.ALL, 5)
-
-        panel.SetSizer(layout)
-
-        return panel
-
-    def build_lst_lst_panel(self, parent):
-        panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
-        panel.SetBackgroundColour(gbl.COLOR_SCHEME['lstBg'])
-        layout = wx.BoxSizer(wx.VERTICAL)
-
-        flags = wx.LC_REPORT | wx.SUNKEN_BORDER | wx.LC_SINGLE_SEL
-        self.nhood_list_ctrl = olv.ObjectListView(panel, wx.ID_ANY,
-                                                  size=(-1, -1),
-                                                  style=flags)
-        self.nhood_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
-        self.nhood_list_ctrl.SetColumns([
-            olv.ColumnDefn('My Neighborhoods', 'left', 300, 'name'),
-        ])
-        layout.Add(self.nhood_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-
-        panel.SetSizer(layout)
-        return panel
-
     def load_neighborhoods(self, nhoods):
         self.nhood_list_ctrl.SetObjects(nhoods)
 
     def select_neighborhood(self, idx):
         self.nhood_list_ctrl.Select(idx)
-
-    def build_frm_panel(self, parent):
-        panel = wx.Panel(parent, wx.ID_ANY)
-        self.SetBackgroundColour(gbl.COLOR_SCHEME['pnlBg'])
-        layout = wx.BoxSizer(wx.VERTICAL)
-
-        tb_panel = self.build_frm_tb_panel(panel)
-        layout.Add(tb_panel, 0, wx.ALL | wx.EXPAND, 5)
-
-        frm_panel = self.build_frm_frm_panel(panel)
-        layout.Add(frm_panel, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.SetSizerAndFit(layout)
-
-        return panel
-
-    def build_frm_tb_panel(self, parent):
-        panel = wx.Panel(parent, wx.ID_ANY)
-        panel.SetBackgroundColour(gbl.COLOR_SCHEME['tbBg'])
-        layout = wx.BoxSizer(wx.HORIZONTAL)
-
-        lbl = uil.toolbar_label(panel, 'Streets')
-        layout.Add(lbl, 0, wx.ALL, 5)
-
-        self.new_street_btn = uil.toolbar_button(panel, 'Add Street')
-        layout.Add(self.new_street_btn, 0, wx.ALL, 5)
-
-        self.drop_street_btn = uil.toolbar_button(panel, 'Drop Street')
-        layout.Add(self.drop_street_btn, 0, wx.ALL, 5)
-
-        self.save_street_btn = uil.toolbar_button(panel, 'Save Edits')
-        layout.Add(self.save_street_btn, 0, wx.ALL, 5)
-
-        panel.SetSizer(layout)
-
-        return panel
-
-    def build_frm_frm_panel(self, parent):
-        panel = wx.Panel(parent, wx.ID_ANY)
-        panel.SetBackgroundColour(gbl.COLOR_SCHEME['tbBg'])
-        layout = wx.BoxSizer(wx.HORIZONTAL)
-
-        flags = wx.LC_REPORT | wx.SUNKEN_BORDER | wx.LC_SINGLE_SEL
-        self.street_list_ctrl = olv.ObjectListView(panel, wx.ID_ANY,
-                                                   size=(-1, -1),
-                                                   style=flags)
-        self.street_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
-        self.street_list_ctrl.SetColumns([
-            olv.ColumnDefn('Street', 'left', 250, 'name'),
-            olv.ColumnDefn('From', 'left', 50, 'lo'),
-            olv.ColumnDefn('To', 'left', 50, 'hi'),
-            olv.ColumnDefn('Side', 'left', 50, 'oe'),
-        ])
-        layout.Add(self.street_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-
-        panel.SetSizer(layout)
-
-        return panel
 
     def load_streets(self, data):
         self.street_list_ctrl.SetObjects(data)
@@ -203,3 +108,42 @@ class NeighborhoodPanel(wx.Panel):
 
     def get_current_nhood(self):
         return self.nhood_list_ctrl.GetSelectedObject().name
+
+   def build_nhoods_toolbar_panel(self, parent):
+        panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
+        panel.SetBackgroundColour(gbl.COLOR_SCHEME['tbBg'])
+
+        layout = wx.BoxSizer(wx.HORIZONTAL)
+
+        lbl = uil.toolbar_label(panel, 'Create Neighborhoods')
+        layout.Add(lbl, 0, wx.ALL, 5)
+
+        panel.SetSizer(layout)
+
+        return panel
+
+    def build_nhoods_frm_panel(self, parent):
+        panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
+        panel.SetBackgroundColour(gbl.COLOR_SCHEME['frmBg'])
+
+        layout = wx.BoxSizer(wx.VERTICAL)
+
+        lbl_layout = wx.BoxSizer(wx.HORIZONTAL)
+
+        lbl_street = uil.toolbar_label(panel, 'Street')
+        lbl_layout.Add(lbl_street, 0, wx.ALL, 5)
+
+        lbl_from = uil.toolbar_label(panel, 'From')
+        lbl_layout.Add(lbl_from, 0, wx.ALL, 5)
+
+        lbl_to = uil.toolbar_label(panel, 'To')
+        lbl_layout.Add(lbl_to, 0, wx.ALL, 5)
+
+        lbl_side = uil.toolbar_label(panel, 'Side')
+        lbl_layout.Add(lbl_side, 0, wx.ALL, 5)
+
+        layout.Add(lbl_layout, 0, wx.ALL, 5)
+
+        panel.SetSizer(layout)
+
+        return panel

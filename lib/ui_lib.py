@@ -63,3 +63,12 @@ def confirm(parent, msg):
 
 def oops(parent, msg):
     wx.MessageDialog(parent, msg, 'Oops!', wx.OK | wx.ICON_ERROR).ShowModal()
+
+
+def get_txt_popup(parent, msg):
+    dlg = wx.TextEntryDialog(parent, msg, 'Inquiring minds want to know')
+    dlg.SetValue('')
+    if dlg.ShowModal() == wx.ID_OK:
+        return dlg.GetValue()
+    dlg.Destroy()
+    return None

@@ -1,70 +1,266 @@
-import wx
+import os
+import configparser
+import csv
+from bs4 import BeautifulSoup as bs
+import requests
+import pandas as pd
+import globals as gbl
+import lib.addr_lib as adl
+import lib.date_lib as dtl
 from models.neighborhood import Neighborhood
-from models.graph import Graph
-import lib.grf_lib as gfl
+from models.neighborhood_street import NeighborhoodStreet
 
 
-class NeighborhoodController(object):
+def get_config():
+    parser = configparser.ConfigParser()
+    parser.read('config.ini')
+    state = parser['Locale']['state']
+    city = parser['Locale']['city']
+    ballot_date = parser['Ballots']['date']
 
-    def __init__(self, view):
-        self.view = view
-        self.init_view()
+    print('Configured city, state: %s, %s' % (city, state))
 
-    def init_view(self):
-        self.view.new_nhood_btn.Bind(wx.EVT_BUTTON,
-                                     self.new_nhood_click)
-        self.view.drop_nhood_btn.Bind(wx.EVT_BUTTON,
-                                      self.drop_nhood_click)
-        self.view.new_street_btn.Bind(wx.EVT_BUTTON,
-                                      self.new_street_click)
-        self.view.drop_street_btn.Bind(wx.EVT_BUTTON,
-                                       self.drop_street_click)
-        self.view.save_street_btn.Bind(wx.EVT_BUTTON,
-                                       self.save_street_click)
-        self.view.show_grf_btn.Bind(wx.EVT_BUTTON,
-                                    self.show_grf_click)
+    return {
+        'state': state, 'city': city, 'ballot_date': ballot_date
+    }
 
-        grfs = Graph.get()
-        self.view.load_grf_list(grfs)
 
-        nhoods = Neighborhood.get()
-        self.view.load_neighborhoods(nhoods)
+def scrape_streets(config):
+    cwd = os.getcwd()
+    path = '%s/bst_data/streets.txt' % cwd
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            return f.readlines()
 
-    def new_nhood_click(self, evt):
-        wx.MessageDialog(self.view, 'This will show form to create new neighborhood', 'Promises').ShowModal()
+    state = config['state']
+    city = config['city']
+    prefix = 'https://www.geographic.org/streetview/usa'
+    state = state.lower()
 
-    def drop_nhood_click(self, evt):
-        wx.MessageDialog(self.view, 'This will remove a neighborhood', 'Promises').ShowModal()
+    url = '%s/%s/%s.html' % (
+        prefix, state, city.replace(' ', '_').lower()
+    )
+    print('Scraping %s...' % url)
+    req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+    parser = bs(req.text, 'html.parser')
 
-    def new_street_click(self, evt):
-        wx.MessageDialog(self.view, 'This will add a new street to neighborhood', 'Promises').ShowModal()
+    span = parser.find('span', class_='listspan')
+    ul = span.findChild('ul')
+    li = ul.findChildren('li')
 
-    def drop_street_click(self, evt):
-        wx.MessageDialog(self.view, 'This will remove a street from neighborhood', 'Promises').ShowModal()
+    streets = []
+    for item in li:
+        streets.append(item.findChild('a').get_text().strip())
 
-    def save_street_click(self, evt):
-        wx.MessageDialog(self.view, 'This will save any edits to neighborhood streets', 'Promises').ShowModal()
+    print('Found %d streets, writing to %s' % (len(streets), path))
 
-    def show_grf_click(self, evt):
-        nhood = self.view.get_current_nhood()
-        grf = self.view.get_grf_selections()
-        choice = grf[0].name
-        if choice == 'All Voters':
-            gdf = gfl.all_gdf(nhood)
-        elif choice == 'Gender':
-            gdf = gfl.gender_gdf(nhood)
-        elif choice == 'Age Group':
-            gdf = gfl.age_gdf(nhood)
-        else:
-            gdf = gfl.party_gdf(nhood)
+    with open(path, 'w') as f:
+        for street in streets:
+            f.write(street + '\n')
 
-        self.draw(gdf)
+    print('Done!')
 
-    def draw(self, df):
-        import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(figsize=(10, 10))
-        ax.set_ylabel('Voters', fontsize=10)
-        ax.set_xlabel('Elections', fontsize=10)
-        df.T.plot(ax=ax, kind='bar', stacked=False)
-        plt.show()
+def scrape_house_nums(state, city, street):
+    prefix = 'https://homemetry.com'
+
+    this_block, links, nums = scrape_initial_page(prefix, state, city, street.name)
+    if links:
+        nums += scrape_links(prefix, links)
+    street.house_nums = nums
+    print('%s has %d addresses' % (street.name, len(nums)))
+
+
+def scrape_initial_page(prefix, state, city, street):
+    url = '%s/%s,+%s+%s' % (
+        prefix,
+        street.replace(' ', '+').upper(),
+        city.replace(' ', '+').upper(),
+        state
+    )
+    print('Scraping %s...' % url)
+    req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+    parser = bs(req.text, 'html.parser')
+
+    tbl = parser.find('section', class_='b-street-index').find('table')
+    rows = tbl.find_all('tr')
+    this_block = rows[1].find('td').get_text()
+    links = [a['href'] for a in tbl.find_all('a', href=True)]
+
+    house_nums = get_house_nums(parser)
+
+    return this_block, links, house_nums
+
+
+def scrape_links(prefix, links):
+    house_nums = []
+    for link in links:
+        url = '%s/%s' % (prefix, link)
+        print('Scraping %s...' % url)
+        req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        parser = bs(req.text, 'html.parser')
+        house_nums += get_house_nums(parser)
+    return house_nums
+
+
+def new_nhood(config, name):
+    nhood = Neighborhood(name)
+    nhood.state = config['state']
+    nhood.city = config['city']
+    return nhood
+
+
+def get_house_nums(parser):
+    nums = []
+    divs = parser.find_all('div', class_='b-homemetry-property street')
+    for div in divs:
+        house_num = div.get('id')
+        if house_num:
+            nums.append(house_num[1:])
+
+    return nums
+
+
+def add_street(nhood, name, lo, hi, oe):
+    street = NeighborhoodStreet({
+        'name': name,
+        'lo': lo,
+        'hi': hi,
+        'oe': oe
+    })
+    scrape_house_nums(nhood.state, nhood.city, street)
+    nhood.streets.append(street)
+
+
+def edit_street(nhood, idx, new_street):
+    nhood.streets[idx] = new_street
+
+
+def drop_street(nhood, idx):
+    del nhood.streets[idx]
+
+
+def save_nhood(nhood):
+    my_voters = get_my_voters(nhood)
+    add_hx(my_voters)
+    save_nhood_streets(nhood)
+    save_nhood_voters(nhood, my_voters)
+
+
+def get_my_voters(nhood):
+    path = 'bst_data/voters/%s.csv' % nhood.city
+    all_voters = pd.read_csv(path)
+
+    # Just the neighborhood streets
+    my_voters = pd.DataFrame()
+    for nhood_street in nhood.streets:
+        x = all_voters[all_voters.street_address.str.contains(nhood_street.name)]
+        my_voters = pd.concat([my_voters, x], axis=0)
+
+    # But some only have certain blocks
+    # First make 2 new columns to separate house numbers & street names
+    house_number = []
+    street_name = []
+    for addr in my_voters.street_address:
+        nbr, name, unit = adl.parse(addr)
+        house_number.append(nbr)
+        street_name.append(name)
+    my_voters['house_number'] = house_number
+    my_voters['street_name'] = street_name
+
+    for nhood_street in nhood.streets:
+        index_list = []
+        if nhood_street.lo:
+            index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
+                                         (my_voters.house_number < int(nhood_street.lo))].index)
+        if nhood_street.hi:
+            index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
+                                         (my_voters.house_number > int(nhood_street.hi))].index)
+        if nhood_street.side == 'E':
+            index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
+                                         (my_voters.house_number % 2 != 0)].index)
+        if nhood_street.side == 'O':
+            index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
+                                         (my_voters.house_number % 2 == 0)].index)
+        my_voters.drop(index_list, inplace=True)
+
+    return my_voters
+
+
+def add_hx(my_voters):
+    hx = pd.read_csv('bst_data/hx.csv')
+    my_hx = hx[hx.voter_id.isin(set(my_voters.voter_id))]
+
+    elections = pd.read_csv('bst_data/elections.csv')
+
+    # add_edate(my_hx, elections)
+
+    elections = elections.to_dict('records')
+
+    my_voters = my_voters.to_dict('records')
+
+    for voter in my_voters:
+        voter['age_group'] = dtl.get_age_group(voter['birth_year'])
+        voter['reg_date'] = dtl.to_string(reg_date_to_date(voter['reg_date']))
+        voter['score'] = '0 (0/0)'
+        hx_rex = my_hx[my_hx.voter_id == voter['voter_id']]
+        earliest_edate = hx_rex.election_date.min()
+        if (pd.isna(earliest_edate)) or (voter['reg_date'] < earliest_edate):
+            earliest_edate = voter['reg_date']
+        voter_election_ids = list(hx_rex.election_id)
+        possible_score = 0
+        actual_score = 0
+        for election in elections:
+            eyear = int(election['date'][0:4])
+            if election['id'] in voter_election_ids:
+                voter[election['date']] = 'Y'
+                possible_score += election['score']
+                actual_score += election['score']
+            elif eyear < election['birth_yr']:
+                voter[election['date']] = 'U'
+            elif election['date'] > earliest_edate:
+                voter[election['date']] = 'N'
+                possible_score += election['score']
+            else:
+                voter[election['date']] = 'X'
+
+        if possible_score:
+            voter['score'] = '%.2f (%d/%d)' % (
+                actual_score / possible_score,
+                actual_score, possible_score)
+
+    return my_voters
+
+
+def add_edate(hx_df, election_df):
+    # Prevent a buttload of strange warnings
+    pd.set_option('mode.chained_assignment', None)
+
+    hx_df['election_date'] = 0
+    for hx_eid in pd.unique(hx_df.election_id):
+        d = election_df[election_df.id == hx_eid].iloc[0, 1]
+        hx_df.loc[hx_df.election_id == hx_eid, 'election_date'] = d
+
+
+def reg_date_to_date(rd):
+    return dtl.to_date(str(rd), '%m%d%Y')
+
+
+def save_nhood_streets(nhood):
+    nhood_name = nhood.name.replace(' ', '_')
+    fname = '%s_nhood.csv' % nhood_name
+    with open('my_data/%s' % fname, 'w', newline='') as f:
+        wtr = csv.DictWriter(f, fieldnames=[
+            'name', 'lo', 'hi', 'side'])
+        wtr.writeheader()
+        for street in nhood.streets:
+            wtr.writerow({
+                'name': street.name,
+                'lo': street.lo,
+                'hi': street.hi,
+                'side': street.side
+            })
+
+
+def save_nhood_voters(nhood, voters):
+    pass

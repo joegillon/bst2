@@ -8,6 +8,8 @@ class Neighborhood(object):
 
     def __init__(self, name):
         self.name = name.replace(' ', '_')
+        self.state = None
+        self.city = None
         self.streets = []
         self.voters = []
 

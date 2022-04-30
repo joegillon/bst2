@@ -7,13 +7,13 @@ from models.ballot import flds as ballot_flds
 import lib.date_lib as dtl
 
 
-def import_sos_elections(qvf_file, prg_ctrl):
+def import_sos_elections(qvf_file):
     from_year = 2010
-    prg_ctrl('Importing MI elections from %d' % from_year)
+    print('Importing MI elections from %d' % from_year)
     elections = []
     with qvf_file:
         for line in qvf_file:
-            prg_ctrl(line.strip())
+            print(line.strip())
             date = dtl.to_date(line[13:21], '%m%d%Y')
             if date.year < from_year:
                 continue
@@ -37,12 +37,12 @@ def import_sos_elections(qvf_file, prg_ctrl):
         wtr.writeheader()
         for election in elections:
             wtr.writerow(election)
-            prg_ctrl('Imported ' + str(election))
+            print('Imported ' + str(election))
 
-    prg_ctrl('Done!')
+    print('Done!')
 
 
-def import_sos_voters(qvf_file, prg_ctrl):
+def import_sos_voters(qvf_file):
     cwd = os.getcwd()
     outfile = '%s/bst_data/voters.csv' % cwd
     with open(outfile, 'w', newline='') as bst_file:
@@ -54,12 +54,12 @@ def import_sos_voters(qvf_file, prg_ctrl):
                 wtr.writerow(qvf_voter_to_dict(line))
                 cnt += 1
                 if cnt % 10000 == 0:
-                    prg_ctrl("{:,}".format(cnt))
+                    print("{:,}".format(cnt))
             except Exception as e:
-                prg_ctrl("Error: %s: %s" % (line, str(e)))
+                print("Error: %s: %s" % (line, str(e)))
 
-    prg_ctrl("{:,}".format(cnt))
-    prg_ctrl('Done!')
+    print("{:,}".format(cnt))
+    print('Done!')
 
     return True     # State has a separate history file
 
@@ -107,31 +107,36 @@ def build_address(line):
     )
 
 
-def import_hx(qvf_file, prg_ctrl):
+def import_hx(qvf_file):
+    election_dates = get_election_dates()
     with open('bst_data/hx.csv', 'w', newline='') as bst_file:
         wtr = csv.DictWriter(bst_file, fieldnames=hx_flds)
         wtr.writeheader()
         cnt = 0
         with qvf_file:
             for line in qvf_file:
+                election_id = int(line[25:38].strip())
+                if election_id not in election_dates:
+                    continue
                 d = {
                     'voter_id': int(line[0:13].replace('\\', '').strip()),
-                    'election_id': int(line[25:38].replace('\\', '').strip()),
+                    'election_id': election_id,
+                    'election_date': election_dates[election_id],
                     'county_id': int(line[13:15].replace('\\', '').strip()),
                     'absentee': line[38].replace('\\', '').strip()
                 }
                 wtr.writerow(d)
                 cnt += 1
                 if cnt % 10000 == 0:
-                    prg_ctrl("{:,}".format(cnt))
+                    print("{:,}".format(cnt))
 
-    prg_ctrl("{:,}".format(cnt))
-    prg_ctrl('Done!')
+    print("{:,}".format(cnt))
+    print('Done!')
 
-    import_ballots(prg_ctrl)     # MI ballot files
+    import_ballots()     # MI ballot files
 
 
-def import_ballots(prg_ctrl):
+def import_ballots():
     cwd = os.getcwd()
     sos_files = ['Democrats.csv', 'Republicans.csv']
     bst_path = '%s/bst_data/ballots.csv' % cwd
@@ -140,7 +145,7 @@ def import_ballots(prg_ctrl):
         wtr.writeheader()
         for sos_file in sos_files:
             path = '%s/sos_data/%s' % (cwd, sos_file)
-            prg_ctrl('Importing ballot file %s' % path)
+            print('Importing ballot file %s' % path)
             with open(path, 'r') as sosf:
                 rdr = csv.DictReader(sosf)
                 cnt = 0
@@ -160,10 +165,10 @@ def import_ballots(prg_ctrl):
                     wtr.writerow(d)
                     cnt += 1
                     if cnt % 10000 == 0:
-                        prg_ctrl("{:,}".format(cnt))
+                        print("{:,}".format(cnt))
 
-        prg_ctrl("{:,}".format(cnt))
-        prg_ctrl('Done!')
+        print("{:,}".format(cnt))
+        print('Done!')
 
 
 def extract_city(ballot_field):
@@ -173,3 +178,14 @@ def extract_city(ballot_field):
     except Exception as ex:
         return ballot_field     # Out of state!
     return ' '.join(parts[0:idx])
+
+
+def get_election_dates():
+    cwd = os.getcwd()
+    path = '%s/bst_data/elections.csv' % cwd
+    dates = {}
+    with open(path, 'r') as f:
+        rdr = csv.DictReader(f)
+        for row in rdr:
+            dates[int(row['id'])] = row['date']
+    return dates

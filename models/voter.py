@@ -86,10 +86,10 @@ class Voter(object):
             if nhood_street.hi:
                 index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
                                              (my_voters.house_number > int(nhood_street.hi))].index)
-            if nhood_street.oe == 'E':
+            if nhood_street.side == 'E':
                 index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
                                              (my_voters.house_number % 2 != 0)].index)
-            if nhood_street.oe == 'O':
+            if nhood_street.side == 'O':
                 index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
                                              (my_voters.house_number % 2 == 0)].index)
             my_voters.drop(index_list, inplace=True)

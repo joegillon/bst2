@@ -1,13 +1,13 @@
 import dao
 
 
-def import_sos_elections(path, prg_ctrl):
-    dao.import_sos_elections(path, prg_ctrl)
+def import_sos_elections(path):
+    dao.import_sos_elections(path)
 
 
-def import_sos_voters(path, prg_ctrl):
-    return dao.import_sos_voters(path, prg_ctrl)
+def import_sos_voters(path):
+    return dao.import_sos_voters(path)
 
 
-def import_hx(path, prg_ctrl):
-    dao.import_hx(path, prg_ctrl)
+def import_hx(path):
+    dao.import_hx(path)

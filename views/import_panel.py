@@ -1,3 +1,4 @@
+import sys
 import wx
 import globals as gbl
 import lib.ui_lib as uil
@@ -59,9 +60,10 @@ class ImportPanel(wx.Panel):
 
         layout = wx.BoxSizer(wx.VERTICAL)
 
-        self.prg_txt = wx.TextCtrl(panel, wx.ID_ANY,
-                                   style=wx.TE_MULTILINE | wx.TE_READONLY)
-        layout.Add(self.prg_txt, 1, wx.ALL | wx.EXPAND, 5)
+        prg_txt = wx.TextCtrl(panel, wx.ID_ANY,
+                              style=wx.TE_MULTILINE | wx.TE_READONLY)
+        sys.stdout = prg_txt
+        layout.Add(prg_txt, 1, wx.ALL | wx.EXPAND, 5)
 
         panel.SetSizer(layout)
 
@@ -77,7 +79,7 @@ class ImportPanel(wx.Panel):
 
         try:
             with open(path, 'r') as file:
-                controller.import_sos_elections(file, self.log_progress)
+                controller.import_sos_elections(file)
         except Exception as ex:
             uil.oops(self, '%s. Maybe this is not an elections file?' % str(ex))
 
@@ -93,7 +95,7 @@ class ImportPanel(wx.Panel):
             if not self.confirm_import():
                 return
             with open(path, 'r') as file:
-                has_hx_file = controller.import_sos_voters(file, self.log_progress)
+                has_hx_file = controller.import_sos_voters(file)
         except Exception as ex:
             uil.oops(self, '%s. Maybe this is not a voter file?' % str(ex))
 
@@ -117,7 +119,7 @@ class ImportPanel(wx.Panel):
             if not self.confirm_import():
                 return
             with open(path, 'r') as file:
-                controller.import_hx(file, self.log_progress)
+                controller.import_hx(file)
         except Exception as ex:
             uil.oops(self, '%s. Maybe this is not a history file?' % str(ex))
 
@@ -134,12 +136,12 @@ class ImportPanel(wx.Panel):
 
         try:
             with open(path, 'r') as path:
-                controller.import_hx(path, self.log_progress)
+                controller.import_hx(path)
         except Exception as ex:
             uil.oops(self, '%s. Maybe this is not a history file?' % str(ex))
 
     def import_bst_voters_btn_click(self, evt):
         uil.inform(self, 'Not yet available - working on it.')
 
-    def log_progress(self, msg):
-        self.prg_txt.write(msg + '\n')
+    # def log_progress(self, msg):
+    #     self.prg_txt.write(msg + '\n')
