@@ -1,4 +1,3 @@
-import sys
 import wx
 import globals as gbl
 from lib.custom_button import CustomButton
@@ -35,10 +34,6 @@ def toolbar_button(panel, label):
     return btn
 
 
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
-
-
 def get_file_path(parent, title, wildcard, multiple=None):
     flags = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
     if multiple:
@@ -72,3 +67,19 @@ def get_txt_popup(parent, msg):
         return dlg.GetValue()
     dlg.Destroy()
     return None
+
+
+def build_import_progress_panel(parent):
+    panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
+    panel.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
+
+    layout = wx.BoxSizer(wx.VERTICAL)
+
+    prg_txt = wx.TextCtrl(panel, wx.ID_ANY,
+                          style=wx.TE_MULTILINE | wx.TE_READONLY)
+    layout.Add(prg_txt, 1, wx.ALL | wx.EXPAND, 5)
+
+    panel.SetSizer(layout)
+
+    return panel, prg_txt
+

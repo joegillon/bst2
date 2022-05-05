@@ -7,8 +7,8 @@ from views.neighborhood_panel import NeighborhoodPanel
 
 class MainWindow(wx.Frame):
 
-    def __init__(self):
-        wx.Frame.__init__(self, None, title='Bluestreets',
+    def __init__(self, state_name):
+        wx.Frame.__init__(self, None, title='Bluestreets ' + state_name,
                           size=(1250, 650), pos=(20, 20))
 
         layout = wx.BoxSizer(wx.VERTICAL)
@@ -27,8 +27,13 @@ class MainWindow(wx.Frame):
         import_panel = ImportPanel(notebook)
         notebook.AddPage(import_panel, 'Import Data')
 
+        notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.page_change)
+        notebook.SetSelection(0)
         layout.Add(notebook, 1, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(layout)
 
         self.Show()
+
+    def page_change(self, evt):
+        print('boo')

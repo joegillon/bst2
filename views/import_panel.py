@@ -16,7 +16,7 @@ class ImportPanel(wx.Panel):
         tb_panel = self.build_import_toolbar_panel(self)
         layout.Add(tb_panel, 0, wx.ALL | wx.EXPAND, 5)
 
-        prg_panel = self.build_import_progress_panel(self)
+        prg_panel, self.prg_ctrl = uil.build_import_progress_panel(self)
         layout.Add(prg_panel, 1, wx.ALL | wx.EXPAND, 5)
 
         self.SetSizer(layout)
@@ -54,21 +54,6 @@ class ImportPanel(wx.Panel):
 
         return panel
 
-    def build_import_progress_panel(self, parent):
-        panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
-        panel.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
-
-        layout = wx.BoxSizer(wx.VERTICAL)
-
-        prg_txt = wx.TextCtrl(panel, wx.ID_ANY,
-                              style=wx.TE_MULTILINE | wx.TE_READONLY)
-        sys.stdout = prg_txt
-        layout.Add(prg_txt, 1, wx.ALL | wx.EXPAND, 5)
-
-        panel.SetSizer(layout)
-
-        return panel
-
     def import_sos_elections_btn_click(self, evt):
         title = 'Import SoS Elections File'
         wildcard = 'SoS files (*.csv)|*.*'
@@ -76,6 +61,8 @@ class ImportPanel(wx.Panel):
 
         if not path:
             return
+
+        sys.stdout = self.prg_ctrl
 
         try:
             with open(path, 'r') as file:
@@ -94,6 +81,7 @@ class ImportPanel(wx.Panel):
         try:
             if not self.confirm_import():
                 return
+            sys.stdout = self.prg_ctrl
             with open(path, 'r') as file:
                 has_hx_file = controller.import_sos_voters(file)
         except Exception as ex:
@@ -118,6 +106,7 @@ class ImportPanel(wx.Panel):
         try:
             if not self.confirm_import():
                 return
+            sys.stdout = self.prg_ctrl
             with open(path, 'r') as file:
                 controller.import_hx(file)
         except Exception as ex:
@@ -142,6 +131,3 @@ class ImportPanel(wx.Panel):
 
     def import_bst_voters_btn_click(self, evt):
         uil.inform(self, 'Not yet available - working on it.')
-
-    # def log_progress(self, msg):
-    #     self.prg_txt.write(msg + '\n')

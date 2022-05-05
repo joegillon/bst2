@@ -1,9 +1,10 @@
-class NeighborhoodStreet(object):
+from models.city_street import CityStreet
+
+
+class NeighborhoodStreet(CityStreet):
 
     def __init__(self, d):
-        self.name = d['name']
-        self.lo = d['lo']
-        self.hi = d['hi']
-        self.side = d['oe']
-        self.house_nums = []
-
+        super().__init__(d)
+        self.lo = d['lo'] if 'lo' in d else ''
+        self.hi = d['hi'] if 'hi' in d else ''
+        self.side = d['side'] if 'side' in d else 'B'

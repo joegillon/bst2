@@ -1,10 +1,13 @@
 import os
 import csv
+import pandas as pd
+import pickle
 from models.election import Election
 from models.voter import flds as voter_flds
 from models.voter_hx import flds as hx_flds
 from models.ballot import flds as ballot_flds
 import lib.date_lib as dtl
+import globals as gbl
 
 
 def import_sos_elections(qvf_file):
@@ -25,28 +28,20 @@ def import_sos_elections(qvf_file):
                 'birth_yr': date.year - 18,
                 'score': Election.get_score(date, desc)
             }
-            elections.append(d)
+            elections.append(Election(d))
 
-    elections = sorted(elections, key=lambda ele: ele['date'], reverse=True)
+    elections = sorted(elections, key=lambda ele: ele.date, reverse=True)
 
-    cwd = os.getcwd()
-
-    outfile = '%s/bst_data/elections.csv' % cwd
-    with open(outfile, 'w', newline='') as outf:
-        wtr = csv.DictWriter(outf, fieldnames=elections[0].keys())
-        wtr.writeheader()
-        for election in elections:
-            wtr.writerow(election)
-            print('Imported ' + str(election))
-
+    outfile = '%s/bst_data/elections.pickle' % gbl.config['app_path']
+    with open(outfile, 'wb') as f:
+        pickle.dump(elections, f)
     print('Done!')
 
 
 def import_sos_voters(qvf_file):
-    cwd = os.getcwd()
-    outfile = '%s/bst_data/voters.csv' % cwd
-    with open(outfile, 'w', newline='') as bst_file:
-        wtr = csv.DictWriter(bst_file, fieldnames=voter_flds)
+    csv_path = '%s/bst_data/voters.csv' % gbl.config['app_path']
+    with open(csv_path, 'w', newline='') as csv_file:
+        wtr = csv.DictWriter(csv_file, fieldnames=voter_flds)
         wtr.writeheader()
         cnt = 0
         for line in qvf_file:
@@ -57,8 +52,12 @@ def import_sos_voters(qvf_file):
                     print("{:,}".format(cnt))
             except Exception as e:
                 print("Error: %s: %s" % (line, str(e)))
+                return False
 
-    print("{:,}".format(cnt))
+    print("Pickling {:,} voters...".format(cnt))
+    df = pd.read_csv(csv_path)
+    df.to_pickle('%s/bst_data/voters.pickle' % gbl.config['app_path'])
+    os.remove(csv_path)
     print('Done!')
 
     return True     # State has a separate history file
@@ -109,8 +108,9 @@ def build_address(line):
 
 def import_hx(qvf_file):
     election_dates = get_election_dates()
-    with open('bst_data/hx.csv', 'w', newline='') as bst_file:
-        wtr = csv.DictWriter(bst_file, fieldnames=hx_flds)
+    csv_path = '%s/bst_data/hx.csv' % gbl.config['app_path']
+    with open(csv_path, 'w', newline='') as csv_file:
+        wtr = csv.DictWriter(csv_file, fieldnames=hx_flds)
         wtr.writeheader()
         cnt = 0
         with qvf_file:
@@ -130,21 +130,23 @@ def import_hx(qvf_file):
                 if cnt % 10000 == 0:
                     print("{:,}".format(cnt))
 
-    print("{:,}".format(cnt))
+    print("Pickling {:,} history records...".format(cnt))
+    df = pd.read_csv(csv_path)
+    df.to_pickle('%s/bst_data/hx.pickle' % gbl.config['app_path'])
+    os.remove(csv_path)
     print('Done!')
 
     import_ballots()     # MI ballot files
 
 
 def import_ballots():
-    cwd = os.getcwd()
-    sos_files = ['Democrats.csv', 'Republicans.csv']
-    bst_path = '%s/bst_data/ballots.csv' % cwd
-    with open(bst_path, 'w', newline='') as bst_file:
-        wtr = csv.DictWriter(bst_file, fieldnames=ballot_flds)
+    qvf_files = ['Democrats.csv', 'Republicans.csv']
+    csv_path = '%s/bst_data/ballots.csv' % gbl.config['app_path']
+    with open(csv_path, 'w', newline='') as csv_file:
+        wtr = csv.DictWriter(csv_file, fieldnames=ballot_flds)
         wtr.writeheader()
-        for sos_file in sos_files:
-            path = '%s/sos_data/%s' % (cwd, sos_file)
+        for sos_file in qvf_files:
+            path = '%s/sos_data/%s' % (gbl.config['app_path'], sos_file)
             print('Importing ballot file %s' % path)
             with open(path, 'r') as sosf:
                 rdr = csv.DictReader(sosf)
@@ -167,8 +169,11 @@ def import_ballots():
                     if cnt % 10000 == 0:
                         print("{:,}".format(cnt))
 
-        print("{:,}".format(cnt))
-        print('Done!')
+    print("Pickling {:,} ballot records...".format(cnt))
+    df = pd.read_csv(csv_path)
+    df.to_pickle('%s/bst_data/ballots.pickle' % gbl.config['app_path'])
+    os.remove(csv_path)
+    print('Done!')
 
 
 def extract_city(ballot_field):
@@ -181,8 +186,7 @@ def extract_city(ballot_field):
 
 
 def get_election_dates():
-    cwd = os.getcwd()
-    path = '%s/bst_data/elections.csv' % cwd
+    path = '%s/bst_data/elections.csv' % gbl.config['app_path']
     dates = {}
     with open(path, 'r') as f:
         rdr = csv.DictReader(f)

@@ -8,6 +8,12 @@ from models.neighborhood import Neighborhood
 class TestNeighborhoodController(unittest.TestCase):
 
     def setUp(self):
+        import globals as gbl
+
+        gbl.config = {
+            'state': 'MI', 'state_name': 'Michigan', 'city': 'Ann Arbor'
+        }
+
         self.cwd = os.getcwd()[0:-18]
 
     def tearDown(self) -> None:
@@ -15,13 +21,13 @@ class TestNeighborhoodController(unittest.TestCase):
 
     def testGetStateCity(self):
         path = '%s/config.ini' % self.cwd
-        state, city = controller.get_config(path)
+        state, city = controller.get_config()
         self.assertEqual('MI', state)
         self.assertEqual('Ann Arbor', city)
 
     def testScrapeStreets(self):
         path = '%s/bst_data/streets.txt' % self.cwd
-        controller.scrape_streets('MI', 'Ann Arbor', path)
+        controller.scrape_streets()
         pass
 
     def testScrapeHouseNums(self):
@@ -39,5 +45,5 @@ class TestNeighborhoodController(unittest.TestCase):
         street = NeighborhoodStreet({
             'name': 'Bruce St', 'lo': None, 'hi': None, 'oe': None, 'house_nums': []
         })
-        controller.add_street(nhood, 'Bruce St', None, None, None)
+        controller.add_nhood_street(nhood, 'Bruce St', None, None, None)
         pass

@@ -1,39 +1,30 @@
 import os
-import configparser
 import csv
 from bs4 import BeautifulSoup as bs
 import requests
 import pandas as pd
+import pickle
 import globals as gbl
 import lib.addr_lib as adl
 import lib.date_lib as dtl
 from models.neighborhood import Neighborhood
+from models.city_street import CityStreet
 from models.neighborhood_street import NeighborhoodStreet
 
 
-def get_config():
-    parser = configparser.ConfigParser()
-    parser.read('config.ini')
-    state = parser['Locale']['state']
-    city = parser['Locale']['city']
-    ballot_date = parser['Ballots']['date']
-
-    print('Configured city, state: %s, %s' % (city, state))
-
-    return {
-        'state': state, 'city': city, 'ballot_date': ballot_date
-    }
-
-
-def scrape_streets(config):
-    cwd = os.getcwd()
-    path = '%s/bst_data/streets.txt' % cwd
+def get_city_streets():
+    path = '%s/bst_data/streets.pickle' % gbl.config['app_path']
     if os.path.exists(path):
-        with open(path, 'r') as f:
-            return f.readlines()
+        with open(path, 'rb') as f:
+            streets = pickle.load(f)
+        return streets
 
-    state = config['state']
-    city = config['city']
+    return scrape_streets()
+    
+
+def scrape_streets():
+    state = gbl.config['state']
+    city = gbl.config['city']
     prefix = 'https://www.geographic.org/streetview/usa'
     state = state.lower()
 
@@ -52,29 +43,33 @@ def scrape_streets(config):
     for item in li:
         streets.append(item.findChild('a').get_text().strip())
 
-    print('Found %d streets, writing to %s' % (len(streets), path))
+    streets = [CityStreet({'name': street, 'house_nums': ''}) for street in streets]
 
-    with open(path, 'w') as f:
-        for street in streets:
-            f.write(street + '\n')
+    path = '%s/bst_data/streets.pickle' % gbl.config['app_path']
+    print('Pickling %d streets...' % len(streets))
+
+    with open(path, 'wb') as f:
+        pickle.dump(streets, f)
 
     print('Done!')
 
+    return streets
 
-def scrape_house_nums(state, city, street):
+
+def scrape_house_nums(state, city, street_name):
     prefix = 'https://homemetry.com'
 
-    this_block, links, nums = scrape_initial_page(prefix, state, city, street.name)
+    first_block, links, nums = scrape_initial_page(prefix, state, city, street_name)
     if links:
         nums += scrape_links(prefix, links)
-    street.house_nums = nums
-    print('%s has %d addresses' % (street.name, len(nums)))
+    print('%s has %d addresses' % (street_name, len(nums)))
+    return nums
 
 
-def scrape_initial_page(prefix, state, city, street):
+def scrape_initial_page(prefix, state, city, street_name):
     url = '%s/%s,+%s+%s' % (
         prefix,
-        street.replace(' ', '+').upper(),
+        street_name.replace(' ', '+').upper(),
         city.replace(' ', '+').upper(),
         state
     )
@@ -103,13 +98,6 @@ def scrape_links(prefix, links):
     return house_nums
 
 
-def new_nhood(config, name):
-    nhood = Neighborhood(name)
-    nhood.state = config['state']
-    nhood.city = config['city']
-    return nhood
-
-
 def get_house_nums(parser):
     nums = []
     divs = parser.find_all('div', class_='b-homemetry-property street')
@@ -121,15 +109,37 @@ def get_house_nums(parser):
     return nums
 
 
-def add_street(nhood, name, lo, hi, oe):
-    street = NeighborhoodStreet({
-        'name': name,
-        'lo': lo,
-        'hi': hi,
-        'oe': oe
+def new_nhood(name):
+    nhood = Neighborhood(name)
+    nhood.state = gbl.config['state']
+    nhood.city = gbl.config['city']
+    return nhood
+
+
+def add_nhood_street(obj):
+    if obj.house_nums:
+        house_nums = obj.house_nums.split('|')
+    else:
+        house_nums = scrape_house_nums(gbl.config['state'], gbl.config['city'], obj.name)
+        obj.house_nums = '|'.join(house_nums)
+    return NeighborhoodStreet({
+        'name': obj.name,
+        'lo': house_nums[0],
+        'hi': house_nums[-1],
+        'side': 'B',
+        'house_nums': obj.house_nums
     })
-    scrape_house_nums(nhood.state, nhood.city, street)
-    nhood.streets.append(street)
+
+
+# def add_street(nhood, name, lo, hi, oe):
+#     street = NeighborhoodStreet({
+#         'name': name,
+#         'lo': lo,
+#         'hi': hi,
+#         'oe': oe
+#     })
+#     scrape_house_nums(nhood.state, nhood.city, street)
+#     nhood.streets.append(street)
 
 
 def edit_street(nhood, idx, new_street):

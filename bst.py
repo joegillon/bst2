@@ -1,8 +1,27 @@
+import os
 import wx
 import logging.handlers
+import configparser
 from models.dataset import Dataset
 import globals as gbl
 from views.main_window import MainWindow
+
+
+def get_config():
+    parser = configparser.ConfigParser()
+    parser.read('config.ini')
+    state = parser['Locale']['state']
+    state_name = parser['Locale']['state_name']
+    city = parser['Locale']['city']
+    ballot_date = parser['Ballots']['date']
+
+    cwd = os.getcwd()
+
+    return {
+        'state': state, 'state_name': state_name,
+        'city': city, 'ballot_date': ballot_date,
+        'app_path': cwd
+    }
 
 
 def main():
@@ -10,7 +29,7 @@ def main():
 
     gbl.dataset = Dataset()
 
-    main_window = MainWindow()
+    main_window = MainWindow(gbl.config['state_name'])
 
     app.MainLoop()
 
@@ -25,5 +44,7 @@ if __name__ == '__main__':
     smtp_handler.setLevel(logging.ERROR)
     logger = logging.getLogger()
     logger.addHandler(smtp_handler)
+
+    gbl.config = get_config()
 
     main()
