@@ -8,8 +8,6 @@ import globals as gbl
 import lib.addr_lib as adl
 import lib.date_lib as dtl
 from models.neighborhood import Neighborhood
-from models.city_street import CityStreet
-from models.neighborhood_street import NeighborhoodStreet
 
 
 def get_city_streets():
@@ -43,8 +41,6 @@ def scrape_streets():
     for item in li:
         streets.append(item.findChild('a').get_text().strip())
 
-    streets = [CityStreet({'name': street, 'house_nums': ''}) for street in streets]
-
     path = '%s/bst_data/streets.pickle' % gbl.config['app_path']
     print('Pickling %d streets...' % len(streets))
 
@@ -77,10 +73,12 @@ def scrape_initial_page(prefix, state, city, street_name):
     req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
     parser = bs(req.text, 'html.parser')
 
-    tbl = parser.find('section', class_='b-street-index').find('table')
-    rows = tbl.find_all('tr')
-    this_block = rows[1].find('td').get_text()
-    links = [a['href'] for a in tbl.find_all('a', href=True)]
+    div = parser.find('div', class_='b-street-index-range')
+    links = [a['href'] for a in div.find_all('a', href=True)]
+    # tbl = parser.find('section', class_='b-street-index').find('table')
+    # rows = tbl.find_all('tr')
+    # this_block = rows[1].find('td').get_text()
+    # links = [a['href'] for a in tbl.find_all('a', href=True)]
 
     house_nums = get_house_nums(parser)
 
@@ -117,19 +115,28 @@ def new_nhood(name):
 
 
 def add_nhood_street(obj):
-    if obj.house_nums:
-        house_nums = obj.house_nums.split('|')
-    else:
-        house_nums = scrape_house_nums(gbl.config['state'], gbl.config['city'], obj.name)
-        obj.house_nums = '|'.join(house_nums)
-    return NeighborhoodStreet({
-        'name': obj.name,
-        'lo': house_nums[0],
-        'hi': house_nums[-1],
-        'side': 'B',
-        'house_nums': obj.house_nums
-    })
+    obj.house_nums = scrape_house_nums(gbl.config['state'], gbl.config['city'], obj.name)
+    update_streets_file(obj)
+    return obj
+    # return NeighborhoodStreet({
+    #     'name': obj.name,
+    #     'lo': obj.house_nums[0],
+    #     'hi': obj.house_nums[-1],
+    #     'side': 'B',
+    #     'house_nums': obj.house_nums
+    # })
 
+
+def update_streets_file(obj):
+    path = '%s/bst_data/streets.pickle' % gbl.config['app_path']
+    with open(path, 'rb') as f:
+        streets = pickle.load(f)
+
+    street = [s for s in streets if s.name == obj.name][0]
+    street.house_nums = obj.house_nums
+
+    with open(path, 'wb') as f:
+        pickle.dump(streets, f)
 
 # def add_street(nhood, name, lo, hi, oe):
 #     street = NeighborhoodStreet({

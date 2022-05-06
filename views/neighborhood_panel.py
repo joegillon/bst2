@@ -3,7 +3,9 @@ import wx
 import ObjectListView as olv
 import globals as gbl
 import lib.ui_lib as uil
+from views.street_popup import StreetFormDlg
 import controllers.neighborhood_controller as controller
+from models.neighborhood_street import NeighborhoodStreet
 
 
 class NeighborhoodPanel(wx.Panel):
@@ -133,6 +135,10 @@ class NeighborhoodPanel(wx.Panel):
         add_street_btn.Bind(wx.EVT_BUTTON, self.add_street_btn_click)
         layout.Add(add_street_btn, 0, wx.ALL, 5)
 
+        edit_street_btn = uil.toolbar_button(panel, 'Edit')
+        edit_street_btn.Bind(wx.EVT_BUTTON, self.edit_street_btn_click)
+        layout.Add(edit_street_btn, 0, wx.ALL, 5)
+
         drop_street_btn = uil.toolbar_button(panel, 'Drop')
         drop_street_btn.Bind(wx.EVT_BUTTON, self.drop_street_btn_click)
         layout.Add(drop_street_btn, 0, wx.ALL, 5)
@@ -142,30 +148,29 @@ class NeighborhoodPanel(wx.Panel):
         return panel
 
     def build_streets_list_panel(self, parent):
+        import wx.grid
+
         panel = wx.Panel(parent, wx.ID_ANY)
         panel.SetBackgroundColour(gbl.COLOR_SCHEME['tbBg'])
-        layout = wx.BoxSizer(wx.HORIZONTAL)
+        layout = wx.BoxSizer(wx.VERTICAL)
 
         flags = wx.LC_REPORT | wx.SUNKEN_BORDER
         self.street_list_ctrl = olv.ObjectListView(panel, wx.ID_ANY,
                                                    size=(-1, -1),
                                                    style=flags)
         self.street_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
-        self.street_list_ctrl.cellEditMode = self.street_list_ctrl.CELLEDIT_SINGLECLICK
         self.street_list_ctrl.SetColumns([
             olv.ColumnDefn('Street', 'left', 250, 'name'),
-            olv.ColumnDefn('From', 'left', 50, 'lo', cellEditorCreator=self.edit_house_num),
+            olv.ColumnDefn('From', 'left', 50, 'lo'),
             olv.ColumnDefn('To', 'left', 50, 'hi'),
             olv.ColumnDefn('Side', 'left', 50, 'side'),
         ])
+        self.street_list_ctrl.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.edit_street_btn_click)
         layout.Add(self.street_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
 
         panel.SetSizer(layout)
 
         return panel
-
-    def edit_house_num(self, ctrl, row, col):
-        print('boo')
 
     def build_street_pick_panel(self, parent):
         panel = wx.Panel(parent, wx.ID_ANY)
@@ -212,8 +217,10 @@ class NeighborhoodPanel(wx.Panel):
                                                      style=flags)
         self.street_picker_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
         self.street_picker_ctrl.SetColumns([
-            olv.ColumnDefn('Street', 'left', 300, 'name'),
+            olv.ColumnDefn('Street', 'left', 300,
+                           valueGetter=lambda x: x),
         ])
+        self.street_picker_ctrl.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.add_street_btn_click)
         layout.Add(self.street_picker_ctrl, 1, wx.ALL | wx.EXPAND, 5)
 
         panel.SetSizerAndFit(layout)
@@ -242,24 +249,32 @@ class NeighborhoodPanel(wx.Panel):
         uil.inform(self, 'Not yet implemented')
 
     def add_street_btn_click(self, evt):
-        obj = self.street_picker_ctrl.GetSelectedObject()
-        if not obj:
+        street_name = self.street_picker_ctrl.GetSelectedObject()
+        if not street_name:
             uil.inform(self, 'You need to pick a street first!')
             return
 
-        sys.stdout = self.prg_ctrl
-        try:
-            street = controller.add_nhood_street(obj)
-        except Exception as ex:
-            msg = 'Unable to get house numbers. Site may be down. Try again later.'
-            uil.oops(self, msg)
-            return
+        street = NeighborhoodStreet({'name': street_name})
+
+        dlg = StreetFormDlg(self, street)
+        dlg.ShowModal()
 
         self.street_list_ctrl.AddObject(street)
         self.street_list_ctrl.SelectObject(street)
 
+    def edit_street_btn_click(self, evt):
+        street = self.street_list_ctrl.GetSelectedObject()
+        if not street:
+            uil.inform(self, 'You need to pick a street first!')
+            return
+
+        dlg = StreetFormDlg(self, street)
+        dlg.ShowModal()
+
+        self.street_list_ctrl.RefreshObject(street)
+
     def drop_street_btn_click(self, evt):
-        if not uil.confirm('Are you sure you want to drop this street?'):
+        if not uil.confirm(self, 'Are you sure you want to drop this street?'):
             return
         obj = self.street_list_ctrl.GetSelectedObject()
         if not obj:
@@ -281,7 +296,7 @@ class NeighborhoodPanel(wx.Panel):
         evt.Skip()
 
     def filter_cond(self, obj):
-        return obj['name'].lower().startswith(self.target.lower())
+        return obj.lower().startswith(self.target.lower())
 
     def on_filter_cancel(self, evt):
         self.srch_ctrl.Clear()
