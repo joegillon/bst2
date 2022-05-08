@@ -238,7 +238,12 @@ class NeighborhoodPanel(wx.Panel):
         name = uil.get_txt_popup(self, 'New neighborhood name')
         if not name:
             return
-        nhood = controller.new_nhood(name)
+
+        streets = self.street_list_ctrl.GetObjects()
+
+        sys.stdout = self.prg_ctrl
+        nhood = controller.new_nhood(name, streets)
+
         self.add_to_nhood_list(nhood)
         self.clear_street_list()
 

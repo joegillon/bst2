@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup as bs
 import requests
 import pandas as pd
 import pickle
+import re
+from functools import partial
 import globals as gbl
 import lib.addr_lib as adl
 import lib.date_lib as dtl
@@ -52,20 +54,20 @@ def scrape_streets():
     return streets
 
 
-def scrape_house_nums(state, city, street_name):
+def scrape_house_nums(state, city, street):
     prefix = 'https://homemetry.com'
 
-    first_block, links, nums = scrape_initial_page(prefix, state, city, street_name)
+    links, nums = scrape_initial_page(prefix, state, city, street)
     if links:
         nums += scrape_links(prefix, links)
-    print('%s has %d addresses' % (street_name, len(nums)))
+    print('%s has %d addresses' % (street.name, len(nums)))
     return nums
 
 
-def scrape_initial_page(prefix, state, city, street_name):
+def scrape_initial_page(prefix, state, city, street):
     url = '%s/%s,+%s+%s' % (
         prefix,
-        street_name.replace(' ', '+').upper(),
+        street.name.replace(' ', '+').upper(),
         city.replace(' ', '+').upper(),
         state
     )
@@ -75,14 +77,36 @@ def scrape_initial_page(prefix, state, city, street_name):
 
     div = parser.find('div', class_='b-street-index-range')
     links = [a['href'] for a in div.find_all('a', href=True)]
-    # tbl = parser.find('section', class_='b-street-index').find('table')
-    # rows = tbl.find_all('tr')
-    # this_block = rows[1].find('td').get_text()
-    # links = [a['href'] for a in tbl.find_all('a', href=True)]
 
-    house_nums = get_house_nums(parser)
+    if not street.lo:
+        return links, get_house_nums(parser)
 
-    return this_block, links, house_nums
+    spans = [x.getText() for x in div.findChildren()]
+    spans = list(map(partial(parse_span, hi=street.hi), spans))
+
+    lo_idx = is_in_span(street.lo, spans)
+    hi_idx = is_in_span(street.hi, spans)
+
+    if lo_idx == 0:
+        return links[0:hi_idx], get_house_nums(parser)
+
+    return links[lo_idx-1:hi_idx], []
+
+
+def parse_span(span, hi):
+    parts = span.split('-')
+    if len(parts) == 2:
+        return int(parts[0]), int(parts[1])
+    return int(re.findall(r'\d+', span)[0]), hi
+
+
+def is_in_span(house_num, spans):
+    for span in spans:
+        lo = span[0]
+        hi = span[1]
+        if lo <= house_num <= hi:
+            return spans.index(span)
+    return None
 
 
 def scrape_links(prefix, links):
@@ -107,7 +131,15 @@ def get_house_nums(parser):
     return nums
 
 
-def new_nhood(name):
+def new_nhood(name, streets):
+    state = gbl.config['state']
+    city = gbl.config['city']
+    for street in streets:
+        scrape_house_nums(state, city, street)
+    # get voters
+    # add hx
+    # add ballots
+
     nhood = Neighborhood(name)
     nhood.state = gbl.config['state']
     nhood.city = gbl.config['city']
@@ -118,13 +150,6 @@ def add_nhood_street(obj):
     obj.house_nums = scrape_house_nums(gbl.config['state'], gbl.config['city'], obj.name)
     update_streets_file(obj)
     return obj
-    # return NeighborhoodStreet({
-    #     'name': obj.name,
-    #     'lo': obj.house_nums[0],
-    #     'hi': obj.house_nums[-1],
-    #     'side': 'B',
-    #     'house_nums': obj.house_nums
-    # })
 
 
 def update_streets_file(obj):
