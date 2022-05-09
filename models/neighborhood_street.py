@@ -5,3 +5,4 @@ class NeighborhoodStreet(object):
         self.lo = d['lo'] if 'lo' in d else ''
         self.hi = d['hi'] if 'hi' in d else ''
         self.side = d['side'] if 'side' in d else 'B'
+        self.house_nums = []

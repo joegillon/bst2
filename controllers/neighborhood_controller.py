@@ -1,15 +1,13 @@
 import os
 import csv
-from bs4 import BeautifulSoup as bs
-import requests
 import pandas as pd
 import pickle
-import re
-from functools import partial
 import globals as gbl
 import lib.addr_lib as adl
 import lib.date_lib as dtl
+import lib.scraper_lib as scraper
 from models.neighborhood import Neighborhood
+from models.neighborhood_street import NeighborhoodStreet
 
 
 def get_city_streets():
@@ -19,116 +17,40 @@ def get_city_streets():
             streets = pickle.load(f)
         return streets
 
-    return scrape_streets()
-    
-
-def scrape_streets():
     state = gbl.config['state']
     city = gbl.config['city']
-    prefix = 'https://www.geographic.org/streetview/usa'
-    state = state.lower()
+    street_names = scraper.scrape_streets(state, city)
 
-    url = '%s/%s/%s.html' % (
-        prefix, state, city.replace(' ', '_').lower()
-    )
-    print('Scraping %s...' % url)
-    req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-    parser = bs(req.text, 'html.parser')
-
-    span = parser.find('span', class_='listspan')
-    ul = span.findChild('ul')
-    li = ul.findChildren('li')
-
-    streets = []
-    for item in li:
-        streets.append(item.findChild('a').get_text().strip())
+    streets = [NeighborhoodStreet({'name': street}) for street in street_names]
 
     path = '%s/bst_data/streets.pickle' % gbl.config['app_path']
     print('Pickling %d streets...' % len(streets))
-
     with open(path, 'wb') as f:
         pickle.dump(streets, f)
 
-    print('Done!')
-
     return streets
+    
 
+def get_house_nums(street):
+    state = gbl.config['state']
+    city = gbl.config['city']
+    street.house_nums = scraper.scrape_house_nums(state, city, street)
+    street.lo = street.house_nums[0]
+    street.hi = street.house_nums[-1]
+    street.side = 'B'
 
-def scrape_house_nums(state, city, street):
-    prefix = 'https://homemetry.com'
+    path = '%s/bst_data/streets.pickle' % gbl.config['app_path']
+    with open(path, 'rb') as f:
+        streets = pickle.load(f)
 
-    links, nums = scrape_initial_page(prefix, state, city, street)
-    if links:
-        nums += scrape_links(prefix, links)
-    print('%s has %d addresses' % (street.name, len(nums)))
-    return nums
+    my_street = [s for s in streets if s.name == street.name][0]
+    my_street.lo = street.house_nums[0]
+    my_street.hi = street.house_nums[-1]
+    my_street.side = 'B'
+    my_street.house_nums = street.house_nums
 
-
-def scrape_initial_page(prefix, state, city, street):
-    url = '%s/%s,+%s+%s' % (
-        prefix,
-        street.name.replace(' ', '+').upper(),
-        city.replace(' ', '+').upper(),
-        state
-    )
-    print('Scraping %s...' % url)
-    req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-    parser = bs(req.text, 'html.parser')
-
-    div = parser.find('div', class_='b-street-index-range')
-    links = [a['href'] for a in div.find_all('a', href=True)]
-
-    if not street.lo:
-        return links, get_house_nums(parser)
-
-    spans = [x.getText() for x in div.findChildren()]
-    spans = list(map(partial(parse_span, hi=street.hi), spans))
-
-    lo_idx = is_in_span(street.lo, spans)
-    hi_idx = is_in_span(street.hi, spans)
-
-    if lo_idx == 0:
-        return links[0:hi_idx], get_house_nums(parser)
-
-    return links[lo_idx-1:hi_idx], []
-
-
-def parse_span(span, hi):
-    parts = span.split('-')
-    if len(parts) == 2:
-        return int(parts[0]), int(parts[1])
-    return int(re.findall(r'\d+', span)[0]), hi
-
-
-def is_in_span(house_num, spans):
-    for span in spans:
-        lo = span[0]
-        hi = span[1]
-        if lo <= house_num <= hi:
-            return spans.index(span)
-    return None
-
-
-def scrape_links(prefix, links):
-    house_nums = []
-    for link in links:
-        url = '%s/%s' % (prefix, link)
-        print('Scraping %s...' % url)
-        req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-        parser = bs(req.text, 'html.parser')
-        house_nums += get_house_nums(parser)
-    return house_nums
-
-
-def get_house_nums(parser):
-    nums = []
-    divs = parser.find_all('div', class_='b-homemetry-property street')
-    for div in divs:
-        house_num = div.get('id')
-        if house_num:
-            nums.append(house_num[1:])
-
-    return nums
+    with open(path, 'wb') as f:
+        pickle.dump(streets, f)
 
 
 def new_nhood(name, streets):

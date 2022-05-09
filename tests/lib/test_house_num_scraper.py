@@ -1,5 +1,5 @@
 import unittest
-import lib.house_num_scraper as scraper
+import lib.scraper_lib as scraper
 
 
 class TestHouseNumScraper(unittest.TestCase):

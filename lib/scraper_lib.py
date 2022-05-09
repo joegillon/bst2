@@ -2,13 +2,37 @@ from bs4 import BeautifulSoup as bs
 import requests
 
 
-prefix = 'https://homemetry.com'
+def scrape_streets(state, city):
+    url = 'https://www.geographic.org/streetview/usa'
+    state = state.lower()
+
+    url = '%s/%s/%s.html' % (
+        url, state, city.replace(' ', '_').lower()
+    )
+    print('Scraping %s...' % url)
+    req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+    parser = bs(req.text, 'html.parser')
+
+    span = parser.find('span', class_='listspan')
+    ul = span.findChild('ul')
+    li = ul.findChildren('li')
+
+    street_names = []
+    for item in li:
+        street_names.append(item.findChild('a').get_text().strip())
+
+    print('Done!')
+
+    return street_names
+
+
+house_num_url = 'https://homemetry.com'
 
 
 def scrape_house_nums(state, city, street):
     url = '%s/%s,+%s+%s' % (
-        prefix,
-        street.replace(' ', '+').upper(),
+        house_num_url,
+        street.name.replace(' ', '+').upper(),
         city.replace(' ', '+').upper(),
         state.upper()
     )
@@ -58,11 +82,11 @@ def get_page_links(page):
 def scrape_links(links):
     my_nums = []
     for link in links[0:-1]:
-        url = '%s/%s' % (prefix, link)
+        url = '%s/%s' % (house_num_url, link)
         page = get_page(url)
         my_nums += get_house_nums(page)
 
-    url = '%s/%s' % (prefix, links[-1])
+    url = '%s/%s' % (house_num_url, links[-1])
     page = get_page(url)
     last_nums, links = scrape_page(page)
 

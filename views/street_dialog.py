@@ -54,17 +54,21 @@ class StreetFormDlg(wx.Dialog):
 
         from_layout = wx.BoxSizer(wx.VERTICAL)
         from_lbl = uil.toolbar_label(panel, 'From')
-        self.from_txt = wx.TextCtrl(panel, wx.ID_ANY, self.street.lo)
+        self.from_cbo = wx.ComboBox(panel, wx.ID_ANY,
+                                    value=self.street.lo,
+                                    choices=self.street.house_nums)
         from_layout.Add(from_lbl, 0, wx.ALL, 5)
-        from_layout.Add(self.from_txt, 0, wx.ALL | wx.EXPAND, 5)
+        from_layout.Add(self.from_cbo, 0, wx.ALL | wx.EXPAND, 5)
 
         layout.Add(from_layout, 0, wx.ALL, 5)
 
         thru_layout = wx.BoxSizer(wx.VERTICAL)
         thru_lbl = uil.toolbar_label(panel, 'Thru')
-        self.thru_txt = wx.TextCtrl(panel, wx.ID_ANY, self.street.hi)
+        self.thru_cbo = wx.ComboBox(panel, wx.ID_ANY,
+                                    value=self.street.hi,
+                                    choices=self.street.house_nums)
         thru_layout.Add(thru_lbl, 0, wx.ALL, 5)
-        thru_layout.Add(self.thru_txt, 0, wx.ALL | wx.EXPAND, 5)
+        thru_layout.Add(self.thru_cbo, 0, wx.ALL | wx.EXPAND, 5)
 
         layout.Add(thru_layout, 0, wx.ALL, 5)
 
@@ -84,8 +88,8 @@ class StreetFormDlg(wx.Dialog):
         return panel
 
     def save_btn_click(self, evt):
-        self.street.lo = self.from_txt.GetValue()
-        self.street.hi = self.thru_txt.GetValue()
+        self.street.lo = self.from_cbo.GetValue()
+        self.street.hi = self.thru_cbo.GetValue()
         self.street.side = self.side_radio.GetStringSelection()
 
         self.Close()
