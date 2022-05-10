@@ -11,39 +11,25 @@ class TestNeighborhoodController(unittest.TestCase):
         import globals as gbl
 
         gbl.config = {
-            'state': 'MI', 'state_name': 'Michigan', 'city': 'Ann Arbor'
+            'state': 'MI', 'state_name': 'Michigan', 'city': 'Ann Arbor',
+            'app_path': os.getcwd()[0:-18],
+            'Ballots': {'date': '2016-03-08'}
         }
-
-        self.cwd = os.getcwd()[0:-18]
 
     def tearDown(self) -> None:
         pass
 
-    def testGetStateCity(self):
-        path = '%s/config.ini' % self.cwd
-        state, city = controller.get_config()
-        self.assertEqual('MI', state)
-        self.assertEqual('Ann Arbor', city)
-
-    def testScrapeStreets(self):
-        path = '%s/bst_data/streets.txt' % self.cwd
-        controller.scrape_streets()
-        pass
-
-    def testScrapeHouseNums(self):
-        street = NeighborhoodStreet({
-            'name': 'Bruce St', 'lo': None, 'hi': None, 'oe': None, 'house_nums': []
-        })
-        street.name = 'Bruce St'
-        controller.scrape_house_nums('MI', 'Ann Arbor', street)
-        pass
-
-    def testAddStreet(self):
-        nhood = Neighborhood('Bruce St')
+    def testSaveNhood(self):
+        nhood = Neighborhood('Test')
         nhood.state = 'MI'
         nhood.city = 'Ann Arbor'
-        street = NeighborhoodStreet({
-            'name': 'Bruce St', 'lo': None, 'hi': None, 'oe': None, 'house_nums': []
-        })
-        controller.add_nhood_street(nhood, 'Bruce St', None, None, None)
+        nhood.streets = [
+            NeighborhoodStreet({
+                'name': 'Bruce St', 'lo': '401', 'hi': '1033', 'side': 'B'
+            }),
+            NeighborhoodStreet({
+                'name': 'Miller Ave', 'lo': '1775', 'hi': '2133', 'side': 'O'
+            })
+        ]
+        controller.save_nhood(nhood)
         pass

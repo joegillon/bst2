@@ -2,11 +2,12 @@ import wx
 import ObjectListView as olv
 import globals as gbl
 import lib.ui_lib as uil
+import controllers.neighborhood_controller as controller
 
 
 class StreetPickerPanel(wx.Panel):
 
-    def __int__(self, parent):
+    def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.SetBackgroundColour(gbl.COLOR_SCHEME['pnlBg'])
 
@@ -84,8 +85,12 @@ class StreetPickerPanel(wx.Panel):
         return panel
 
     def on_street_picker_dbl_click(self, evt):
-        self.add_street()
+        street = self.street_picker_ctrl.GetSelectedObject()
+        if not street:
+            uil.inform(self, 'You need to pick a street first!')
+            return
+
+        controller.add_street(self.Parent, street)
 
     def load_streets(self, streets):
-        pass
-        # self.street_picker_ctrl.SetObjects(streets)
+        self.street_picker_ctrl.SetObjects(streets)

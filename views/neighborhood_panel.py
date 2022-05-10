@@ -254,7 +254,6 @@ class NeighborhoodPanel(wx.Panel):
 
         streets = self.street_list_ctrl.GetObjects()
 
-        sys.stdout = self.prg_ctrl
         nhood = controller.new_nhood(name, streets)
 
         self.add_to_nhood_list(nhood)
@@ -264,7 +263,13 @@ class NeighborhoodPanel(wx.Panel):
         uil.inform(self, 'Not yet implemented')
 
     def on_save_nhood_btn_click(self, evt):
-        uil.inform(self, 'Not yet implemented')
+        nhood = self.nhood_list_ctrl.GetSelectedObject()
+        if not nhood:
+            uil.inform(self, 'No neighborhood selected!')
+            return
+
+        # sys.stdout = self.prg_ctrl
+        controller.save_nhood(nhood)
 
     def build_nhoods_list_panel(self, parent):
         panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)

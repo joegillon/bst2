@@ -29,7 +29,7 @@ def get_city_streets():
         pickle.dump(streets, f)
 
     return streets
-    
+
 
 def get_house_nums(street):
     state = gbl.config['state']
@@ -54,120 +54,91 @@ def get_house_nums(street):
 
 
 def new_nhood(name, streets):
-    state = gbl.config['state']
-    city = gbl.config['city']
-    for street in streets:
-        scrape_house_nums(state, city, street)
-    # get voters
-    # add hx
-    # add ballots
-
     nhood = Neighborhood(name)
     nhood.state = gbl.config['state']
     nhood.city = gbl.config['city']
+    nhood.streets = streets
+    nhood.voters = []
     return nhood
 
 
-def add_nhood_street(obj):
-    obj.house_nums = scrape_house_nums(gbl.config['state'], gbl.config['city'], obj.name)
-    update_streets_file(obj)
-    return obj
-
-
-def update_streets_file(obj):
-    path = '%s/bst_data/streets.pickle' % gbl.config['app_path']
-    with open(path, 'rb') as f:
-        streets = pickle.load(f)
-
-    street = [s for s in streets if s.name == obj.name][0]
-    street.house_nums = obj.house_nums
-
-    with open(path, 'wb') as f:
-        pickle.dump(streets, f)
-
-# def add_street(nhood, name, lo, hi, oe):
-#     street = NeighborhoodStreet({
-#         'name': name,
-#         'lo': lo,
-#         'hi': hi,
-#         'oe': oe
-#     })
-#     scrape_house_nums(nhood.state, nhood.city, street)
-#     nhood.streets.append(street)
-
-
-def edit_street(nhood, idx, new_street):
-    nhood.streets[idx] = new_street
-
-
-def drop_street(nhood, idx):
-    del nhood.streets[idx]
-
-
 def save_nhood(nhood):
-    my_voters = get_my_voters(nhood)
-    add_hx(my_voters)
+    voterdf = get_my_voters(nhood)
+    voterdf = add_hx(voterdf)
+    if 'Ballots' in gbl.config:
+        add_ballots(voterdf, gbl.config['Ballots']['date'])
     save_nhood_streets(nhood)
-    save_nhood_voters(nhood, my_voters)
+    save_nhood_voters(nhood, voterdf)
+    print('Done!')
 
 
 def get_my_voters(nhood):
-    path = 'bst_data/voters/%s.csv' % nhood.city
-    all_voters = pd.read_csv(path)
+    print('Getting all voters...')
+    path = '%s/bst_data/voters.pickle' % gbl.config['app_path']
+    all_vdf = pd.read_pickle(path)
+
+    # Just my city
+    print('Just %s voters...' % nhood.city)
+    all_vdf = all_vdf[all_vdf.city == nhood.city.upper()]
+
+    my_vdf = pd.DataFrame()
 
     # Just the neighborhood streets
-    my_voters = pd.DataFrame()
     for nhood_street in nhood.streets:
-        x = all_voters[all_voters.street_address.str.contains(nhood_street.name)]
-        my_voters = pd.concat([my_voters, x], axis=0)
+        print('Just the voters for %s...' % nhood_street.name)
+        x = all_vdf[all_vdf.street_address.str.contains(nhood_street.name.upper())]
+        my_vdf = pd.concat([my_vdf, x], axis=0)
 
     # But some only have certain blocks
     # First make 2 new columns to separate house numbers & street names
     house_number = []
     street_name = []
-    for addr in my_voters.street_address:
+    for addr in my_vdf.street_address:
         nbr, name, unit = adl.parse(addr)
         house_number.append(nbr)
         street_name.append(name)
-    my_voters['house_number'] = house_number
-    my_voters['street_name'] = street_name
+    my_vdf['house_number'] = house_number
+    my_vdf['street_name'] = street_name
 
+    print('Getting voters for specified blocks...')
     for nhood_street in nhood.streets:
+        nhood_street_name = nhood_street.name.upper()
         index_list = []
         if nhood_street.lo:
-            index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
-                                         (my_voters.house_number < int(nhood_street.lo))].index)
+            index_list += list(my_vdf[(my_vdf.street_name == nhood_street_name) &
+                                      (my_vdf.house_number < int(nhood_street.lo))].index)
         if nhood_street.hi:
-            index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
-                                         (my_voters.house_number > int(nhood_street.hi))].index)
+            index_list += list(my_vdf[(my_vdf.street_name == nhood_street_name) &
+                                      (my_vdf.house_number > int(nhood_street.hi))].index)
         if nhood_street.side == 'E':
-            index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
-                                         (my_voters.house_number % 2 != 0)].index)
+            index_list += list(my_vdf[(my_vdf.street_name == nhood_street_name) &
+                                      (my_vdf.house_number % 2 != 0)].index)
         if nhood_street.side == 'O':
-            index_list += list(my_voters[(my_voters.street_name == nhood_street.name) &
-                                         (my_voters.house_number % 2 == 0)].index)
-        my_voters.drop(index_list, inplace=True)
+            index_list += list(my_vdf[(my_vdf.street_name == nhood_street_name) &
+                                      (my_vdf.house_number % 2 == 0)].index)
+        my_vdf.drop(index_list, inplace=True)
 
-    return my_voters
+    return my_vdf
 
 
-def add_hx(my_voters):
-    hx = pd.read_csv('bst_data/hx.csv')
-    my_hx = hx[hx.voter_id.isin(set(my_voters.voter_id))]
+def add_hx(vdf):
+    print('Adding voter history and avidity scores...')
+    print('Getting all voter history records...')
+    hdf = pd.read_pickle('%s/bst_data/hx.pickle' % gbl.config['app_path'])
 
-    elections = pd.read_csv('bst_data/elections.csv')
+    print('Just history records for my voters...')
+    my_hdf = hdf[hdf.voter_id.isin(set(vdf.voter_id))]
 
-    # add_edate(my_hx, elections)
+    elections = pd.read_pickle('%s/bst_data/elections.pickle' % gbl.config['app_path'])
 
-    elections = elections.to_dict('records')
+    voters = vdf.to_dict('records')
 
-    my_voters = my_voters.to_dict('records')
-
-    for voter in my_voters:
+    print('Just my voters...')
+    for voter in voters:
         voter['age_group'] = dtl.get_age_group(voter['birth_year'])
         voter['reg_date'] = dtl.to_string(reg_date_to_date(voter['reg_date']))
         voter['score'] = '0 (0/0)'
-        hx_rex = my_hx[my_hx.voter_id == voter['voter_id']]
+        hx_rex = my_hdf[my_hdf.voter_id == voter['voter_id']]
         earliest_edate = hx_rex.election_date.min()
         if (pd.isna(earliest_edate)) or (voter['reg_date'] < earliest_edate):
             earliest_edate = voter['reg_date']
@@ -175,35 +146,43 @@ def add_hx(my_voters):
         possible_score = 0
         actual_score = 0
         for election in elections:
-            eyear = int(election['date'][0:4])
-            if election['id'] in voter_election_ids:
-                voter[election['date']] = 'Y'
-                possible_score += election['score']
-                actual_score += election['score']
-            elif eyear < election['birth_yr']:
-                voter[election['date']] = 'U'
-            elif election['date'] > earliest_edate:
-                voter[election['date']] = 'N'
-                possible_score += election['score']
+            eyear = int(election.date[0:4])
+            if election.id in voter_election_ids:
+                voter[election.date] = 'Y'
+                possible_score += election.score
+                actual_score += election.score
+            elif eyear < election.birth_yr:
+                voter[election.date] = 'U'
+            elif election.date > earliest_edate:
+                voter[election.date] = 'N'
+                possible_score += election.score
             else:
-                voter[election['date']] = 'X'
+                voter[election.date] = 'X'
 
         if possible_score:
             voter['score'] = '%.2f (%d/%d)' % (
                 actual_score / possible_score,
                 actual_score, possible_score)
 
-    return my_voters
+    return pd.DataFrame.from_dict(voters)
 
 
-def add_edate(hx_df, election_df):
-    # Prevent a buttload of strange warnings
-    pd.set_option('mode.chained_assignment', None)
+def add_ballots(vdf, election_date):
+    print('Adding ballot selection...')
+    print('Getting all ballots...')
+    app_path = gbl.config['app_path']
+    path = '%s/bst_data/ballots.pickle' % app_path
+    bdf = pd.read_pickle(path)
 
-    hx_df['election_date'] = 0
-    for hx_eid in pd.unique(hx_df.election_id):
-        d = election_df[election_df.id == hx_eid].iloc[0, 1]
-        hx_df.loc[hx_df.election_id == hx_eid, 'election_date'] = d
+    print('Just history records for my voters...')
+    bdf = bdf[bdf.voter_id.isin(set(vdf.voter_id))]
+
+    print('Just ballots for my voters...')
+    bid = list(bdf.voter_id.unique())
+    for vid in vdf.voter_id:
+        if vid in bid:
+            party = bdf.loc[bdf.voter_id == vid, 'party'].values[0]
+            vdf.loc[vdf.voter_id == vid, election_date] = party
 
 
 def reg_date_to_date(rd):
@@ -211,9 +190,10 @@ def reg_date_to_date(rd):
 
 
 def save_nhood_streets(nhood):
+    print('Saving streets for %s...' % nhood.name)
     nhood_name = nhood.name.replace(' ', '_')
-    fname = '%s_nhood.csv' % nhood_name
-    with open('my_data/%s' % fname, 'w', newline='') as f:
+    path = '%s/my_data/%s_streets.csv' % (gbl.config['app_path'], nhood_name)
+    with open(path, 'w', newline='') as f:
         wtr = csv.DictWriter(f, fieldnames=[
             'name', 'lo', 'hi', 'side'])
         wtr.writeheader()
@@ -226,5 +206,8 @@ def save_nhood_streets(nhood):
             })
 
 
-def save_nhood_voters(nhood, voters):
-    pass
+def save_nhood_voters(nhood, vdf):
+    print('Saving voters for %s...' % nhood.name)
+    nhood_name = nhood.name.replace(' ', '_')
+    path = '%s/my_data/%s_voters.csv' % (gbl.config['app_path'], nhood_name)
+    vdf.to_csv(path, index=False, header=True)
