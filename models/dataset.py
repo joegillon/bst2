@@ -30,18 +30,44 @@ class Dataset(object):
         folder = self.cwd + '/my_data'
         with os.scandir(folder) as all_files:
             for file in all_files:
-                if 'nhood' in file.name:
+                if 'streets' in file.name:
                     nhood_name = file.name.split('.')[0][:-6]
                     nhood = Neighborhood(nhood_name)
                     nhood.get(file.path)
                     nhoods[nhood_name] = nhood
-                elif 'voters' in file.name:
-                    nhood_name = file.name.split('.')[0][:-7]
-                    nhoods[nhood_name].voters = Voter.get(file.path)
-                else:
-                    continue
 
         self.my_neighborhoods = nhoods
+
+        self.res_rex = self.build_residence_data()
+
+    def build_residence_data(self):
+        rex = []
+        for nhood in list(self.my_neighborhoods.values()):
+            d = {}
+            for voter in nhood.voters:
+                voter_addr = '%s %s' % (voter.house_number, voter.street_name)
+                if voter_addr not in d:
+                    d[voter_addr] = []
+                d[voter_addr].append(voter)
+            for street in nhood.streets:
+                for house_num in street.house_nums:
+                    num = house_num.strip()
+                    st = street.name.upper().strip()
+                    street_addr = num + ' ' + st
+                    if street_addr not in d:
+                        rex.append(self.no_voter_at(num, st))
+                    else:
+                        for vrec in d[street_addr]:
+                            rex.append(vrec)
+
+        return rex
+
+    def no_voter_at(self, house_num, street_name):
+        voter = Voter()
+        voter.street_address = house_num + ' ' + street_name
+        voter.house_number = house_num
+        voter.street_name = street_name
+        return voter
 
     def save_my_elections(self, elections):
         # rebuild voters

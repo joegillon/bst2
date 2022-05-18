@@ -159,6 +159,14 @@ class NeighborhoodPanel(wx.Panel):
         drop_street_btn.Bind(wx.EVT_BUTTON, self.on_drop_street_btn_click)
         layout.Add(drop_street_btn, 0, wx.ALL, 5)
 
+        save_streets_btn = uil.toolbar_button(panel, 'Save')
+        save_streets_btn.Bind(wx.EVT_BUTTON, self.on_save_streets_btn_click)
+        layout.Add(save_streets_btn, 0, wx.ALL, 5)
+
+        load_streets_btn = uil.toolbar_button(panel, 'Load')
+        load_streets_btn.Bind(wx.EVT_BUTTON, self.on_load_streets_btn_click)
+        layout.Add(load_streets_btn, 0, wx.ALL, 5)
+
         panel.SetSizer(layout)
 
         return panel
@@ -176,6 +184,26 @@ class NeighborhoodPanel(wx.Panel):
         if not obj:
             return
         self.street_list_ctrl.RemoveObject(obj)
+
+    def on_save_streets_btn_click(self, evt):
+        objs = self.street_list_ctrl.GetObjects()
+        if not objs:
+            uil.inform(self, 'No streets to save!')
+            return
+
+        title = 'Save Streets in Progress'
+        wildcard = 'CSV files (*.csv)|*.*'
+        path = uil.get_file_path(self, title, wildcard)
+        if path:
+            controller.save_streets(path, objs)
+
+    def on_load_streets_btn_click(self, evt):
+        title = 'Save Streets in Progress'
+        wildcard = 'CSV files (*.csv)|*.*'
+        path = uil.get_file_path(self, title, wildcard, must_exist=True)
+        if path:
+            streets = controller.load_streets(path)
+            self.street_list_ctrl.SetObjects(streets)
 
     def build_streets_list_panel(self, parent):
         import wx.grid
@@ -195,6 +223,7 @@ class NeighborhoodPanel(wx.Panel):
             olv.ColumnDefn('To', 'left', 50, 'hi'),
             olv.ColumnDefn('Side', 'left', 50, 'side'),
         ])
+        self.street_list_ctrl.SetSortColumn(0)
         self.street_list_ctrl.Bind(wx.EVT_LIST_ITEM_ACTIVATED,
                                    self.on_street_list_dbl_click)
         layout.Add(self.street_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
@@ -268,7 +297,7 @@ class NeighborhoodPanel(wx.Panel):
             uil.inform(self, 'No neighborhood selected!')
             return
 
-        # sys.stdout = self.prg_ctrl
+        sys.stdout = self.prg_ctrl
         controller.save_nhood(nhood)
 
     def build_nhoods_list_panel(self, parent):
@@ -308,6 +337,8 @@ class NeighborhoodPanel(wx.Panel):
         dlg = StreetFormDlg(self, street)
         dlg.ShowModal()
 
+        controller.to_nhood_street(street)
+
         self.street_list_ctrl.AddObject(street)
         self.street_list_ctrl.SelectObject(street)
 
@@ -319,5 +350,7 @@ class NeighborhoodPanel(wx.Panel):
 
         dlg = StreetFormDlg(self, street)
         dlg.ShowModal()
+
+        controller.to_nhood_street(street)
 
         self.street_list_ctrl.RefreshObject(street)

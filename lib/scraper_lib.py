@@ -38,7 +38,8 @@ def scrape_house_nums(state, city, street):
     )
     page = get_page(url)
     nums, links = scrape_page(page)
-    nums += scrape_links(links)
+    if links:
+        nums += scrape_links(links)
 
     return nums
 
@@ -65,7 +66,10 @@ def get_house_nums(page):
 
 
 def get_page_links(page):
-    tbl = page.find('section', class_='b-street-index').find('table')
+    section = page.find('section', class_='b-street-index')
+    if not section:
+        return []
+    tbl = section.find('table')
     rows = tbl.find_all('tr')[1:]
     last_row = rows[-1]
     col = last_row.find('td')

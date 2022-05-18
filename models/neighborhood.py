@@ -7,7 +7,7 @@ from models.voter import Voter
 class Neighborhood(object):
 
     def __init__(self, name):
-        self.name = name.replace(' ', '_')
+        self.name = name
         self.state = None
         self.city = None
         self.streets = []
@@ -37,3 +37,4 @@ class Neighborhood(object):
             rdr = csv.DictReader(f)
             for street in rdr:
                 self.streets.append(NeighborhoodStreet(street))
+                self.voters = Voter.get(path.replace('streets', 'voters'))

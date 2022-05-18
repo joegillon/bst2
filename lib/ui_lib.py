@@ -34,8 +34,10 @@ def toolbar_button(panel, label):
     return btn
 
 
-def get_file_path(parent, title, wildcard, multiple=None):
-    flags = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+def get_file_path(parent, title, wildcard, must_exist=False, multiple=False):
+    flags = wx.FD_OPEN
+    if must_exist:
+        flags |= wx.FD_FILE_MUST_EXIST
     if multiple:
         flags |= wx.FD_MULTIPLE
     with wx.FileDialog(parent, title, wildcard=wildcard, style=flags) as dlg:

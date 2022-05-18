@@ -7,7 +7,7 @@ from views.turonout_menu import TurnoutMenu
 from controllers.voter_controller import VoterController
 
 
-class VoterPanel(wx.Panel):
+class ResidencePanel(wx.Panel):
 
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, size=(-1, 500))
@@ -35,7 +35,7 @@ class VoterPanel(wx.Panel):
 
         layout = wx.BoxSizer(wx.HORIZONTAL)
 
-        lbl = uil.toolbar_label(panel, 'Voters')
+        lbl = uil.toolbar_label(panel, 'Residences')
         layout.Add(lbl, 0, wx.ALL | wx.EXPAND, 5)
 
         self.select_btn = uil.toolbar_button(panel, 'Make Selection')
@@ -68,16 +68,16 @@ class VoterPanel(wx.Panel):
                                                   style=flags)
         self.voter_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
         self.voter_list_cols = [
-            olv.ColumnDefn('Name', 'left', valueGetter=str),
             olv.ColumnDefn('Address', 'left', valueGetter='street_address'),
+            olv.ColumnDefn('Name', 'left', valueGetter=str),
             olv.ColumnDefn('Gender', 'left', valueGetter='gender'),
             olv.ColumnDefn('Age Group', 'left', valueGetter='age_group'),
             # olv.ColumnDefn('Party', 'left', valueGetter='party'),
-            olv.ColumnDefn('Score', 'left', valueGetter='score')
+            olv.ColumnDefn('Score', 'left', valueGetter='score'),
         ]
         self.voter_list_ctrl.SetColumns(self.voter_list_cols)
         self.add_election_cols()
-        self.voter_list_ctrl.SetSortColumn(0)
+        self.voter_list_ctrl.SortListItemsBy(self.list_sorter)
         self.voter_list_ctrl.AutoSizeColumns()
         self.voter_list_ctrl.Bind(wx.EVT_LIST_COL_CLICK, self.list_sorter_evt)
         layout.Add(self.voter_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)

@@ -29,7 +29,7 @@ def main():
 
     gbl.dataset = Dataset()
 
-    main_window = MainWindow(gbl.config['state_name'])
+    MainWindow(gbl.config['state_name'])
 
     app.MainLoop()
 

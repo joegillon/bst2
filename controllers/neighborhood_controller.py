@@ -65,8 +65,8 @@ def new_nhood(name, streets):
 def save_nhood(nhood):
     voterdf = get_my_voters(nhood)
     voterdf = add_hx(voterdf)
-    if 'Ballots' in gbl.config:
-        add_ballots(voterdf, gbl.config['Ballots']['date'])
+    if 'ballot_date' in gbl.config:
+        add_ballots(voterdf, gbl.config['ballot_date'])
     save_nhood_streets(nhood)
     save_nhood_voters(nhood, voterdf)
     print('Done!')
@@ -99,6 +99,12 @@ def get_my_voters(nhood):
         street_name.append(name)
     my_vdf['house_number'] = house_number
     my_vdf['street_name'] = street_name
+
+    # Remove false matches
+    my_street_names = [s.name.upper() for s in nhood.streets]
+    false_matches = [s for s in my_vdf.street_name.unique() if s not in my_street_names]
+    for match in false_matches:
+        my_vdf = my_vdf[my_vdf.street_name != match]
 
     print('Getting voters for specified blocks...')
     for nhood_street in nhood.streets:
@@ -189,21 +195,41 @@ def reg_date_to_date(rd):
     return dtl.to_date(str(rd), '%m%d%Y')
 
 
-def save_nhood_streets(nhood):
-    print('Saving streets for %s...' % nhood.name)
-    nhood_name = nhood.name.replace(' ', '_')
-    path = '%s/my_data/%s_streets.csv' % (gbl.config['app_path'], nhood_name)
+def to_nhood_street(obj):
+    NeighborhoodStreet.reconfig_street(obj)
+
+
+def save_streets(path, streets):
     with open(path, 'w', newline='') as f:
         wtr = csv.DictWriter(f, fieldnames=[
-            'name', 'lo', 'hi', 'side'])
+            'name', 'lo', 'hi', 'side', 'house_nums'])
         wtr.writeheader()
-        for street in nhood.streets:
+        for street in streets:
             wtr.writerow({
                 'name': street.name,
                 'lo': street.lo,
                 'hi': street.hi,
-                'side': street.side
+                'side': street.side,
+                'house_nums': '|'.join(street.house_nums)
             })
+
+
+def load_streets(path):
+    streets = []
+    with open(path, 'r') as f:
+        rdr = csv.DictReader(f)
+        for row in rdr:
+            row['house_nums'] = row['house_nums'].split('|')
+            streets.append(NeighborhoodStreet(row))
+
+    return streets
+
+
+def save_nhood_streets(nhood):
+    print('Saving streets for %s...' % nhood.name)
+    nhood_name = nhood.name.replace(' ', '_')
+    path = '%s/my_data/%s_streets.csv' % (gbl.config['app_path'], nhood_name)
+    save_streets(path, nhood.streets)
 
 
 def save_nhood_voters(nhood, vdf):
