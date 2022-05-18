@@ -119,6 +119,3 @@ class VoterPanel(wx.Panel):
 
     def load_my_list(self, objs):
         self.voter_list_ctrl.SetObjects(objs)
-
-    # def show_turnout_menu(self, pos):
-    #     self.PopupMenu(self.turnout_menu, pos)

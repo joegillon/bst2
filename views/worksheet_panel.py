@@ -145,11 +145,22 @@ class WorksheetPanel(wx.Panel):
         layout.Add(lbl, 0, wx.ALL, 5)
 
         show_grf_btn = uil.toolbar_button(panel, 'Show Graph')
+        show_grf_btn.Bind(wx.EVT_BUTTON, self.on_show_turnout_graph)
         layout.Add(show_grf_btn, 0, wx.ALL, 5)
 
         panel.SetSizer(layout)
 
         return panel
+
+    def on_show_turnout_graph(self, evt):
+        choice = self.turnout_grf_list_ctrl.GetSelectedObject()
+        if not choice:
+            uil.inform(self, 'No graph selected!')
+            return
+
+        nhood = self.nhood_list_ctrl.GetSelectedObject()
+
+        controller.show_grf(choice['name'], nhood)
 
     def build_turnout_graph_list_panel(self, parent):
         panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
@@ -157,19 +168,19 @@ class WorksheetPanel(wx.Panel):
         layout = wx.BoxSizer(wx.VERTICAL)
 
         flags = wx.LC_REPORT | wx.SUNKEN_BORDER
-        grf_list_ctrl = olv.ObjectListView(panel, wx.ID_ANY,
+        self.turnout_grf_list_ctrl = olv.ObjectListView(panel, wx.ID_ANY,
                                                 size=(-1, -1),
                                                 style=flags)
-        grf_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
-        grf_list_ctrl.SetColumns([
+        self.turnout_grf_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
+        self.turnout_grf_list_ctrl.SetColumns([
             olv.ColumnDefn('Turnout', 'left', 250, 'name'),
         ])
-        grf_list_ctrl.SetObjects([
+        self.turnout_grf_list_ctrl.SetObjects([
             {'name': 'All Voters'},
             {'name': 'Age Group'},
             {'name': 'Gender'}
         ])
-        layout.Add(grf_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+        layout.Add(self.turnout_grf_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
 
         panel.SetSizer(layout)
         return panel

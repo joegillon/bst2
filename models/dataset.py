@@ -31,7 +31,7 @@ class Dataset(object):
         with os.scandir(folder) as all_files:
             for file in all_files:
                 if 'streets' in file.name:
-                    nhood_name = file.name.split('.')[0][:-6]
+                    nhood_name = file.name.split('.')[0][:-8]
                     nhood = Neighborhood(nhood_name)
                     nhood.get(file.path)
                     nhoods[nhood_name] = nhood

@@ -1,12 +1,14 @@
 import os
 import pandas as pd
+import globals as gbl
 
 
 def all_gdf(nhood):
-    path = '%s/data/' % os.getcwd()
+    path = '%s/my_data' % gbl.config['app_path']
 
-    edf = pd.read_csv(path + 'mi/elections.csv')
-    vdf = pd.read_csv(path + ('voters/%s_voters.csv' % nhood))
+    edf = pd.read_csv('%s/elections.csv' % path)
+    vdf = pd.read_csv('%s/%s_voters.csv' %
+                      (path, nhood.name.replace(' ', '_')))
 
     cols = edf.date[0:15]
     tdf = vdf.loc[:, cols]
@@ -30,10 +32,11 @@ def all_gdf(nhood):
 
 
 def gender_gdf(nhood):
-    path = '%s/data/' % os.getcwd()
+    path = '%s/my_data' % gbl.config['app_path']
 
-    edf = pd.read_csv(path + 'mi/elections.csv')
-    vdf = pd.read_csv(path + ('voters/%s_voters.csv' % nhood))
+    edf = pd.read_csv('%s/elections.csv' % path)
+    vdf = pd.read_csv('%s/%s_voters.csv' %
+                      (path, nhood.name.replace(' ', '_')))
 
     cols = edf.date[0:15]
 
@@ -72,10 +75,11 @@ def gender_gdf(nhood):
 
 
 def age_gdf(nhood):
-    path = '%s/data/' % os.getcwd()
+    path = '%s/my_data' % gbl.config['app_path']
 
-    edf = pd.read_csv(path + 'mi/elections.csv')
-    vdf = pd.read_csv(path + ('voters/%s_voters.csv' % nhood))
+    edf = pd.read_csv('%s/elections.csv' % path)
+    vdf = pd.read_csv('%s/%s_voters.csv' %
+                      (path, nhood.name.replace(' ', '_')))
 
     cols = edf.date[0:15]
 

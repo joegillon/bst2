@@ -1,10 +1,7 @@
 import lib.grf_lib as gfl
 
 
-def show_grf_click(self, evt):
-    nhood = self.view.get_current_nhood()
-    grf = self.view.get_grf_selections()
-    choice = grf[0].name
+def show_grf_click(choice, nhood):
     if choice == 'All Voters':
         gdf = gfl.all_gdf(nhood)
     elif choice == 'Gender':
@@ -14,10 +11,10 @@ def show_grf_click(self, evt):
     else:
         gdf = gfl.party_gdf(nhood)
 
-    self.draw(gdf)
+    draw(gdf)
 
 
-def draw(self, df):
+def draw(df):
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(10, 10))
