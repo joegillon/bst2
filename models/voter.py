@@ -41,6 +41,15 @@ class Voter(object):
             return me_num >= oth_num if ascending else me_num < oth_num
         return me_unit >= oth_unit if ascending else me_unit < oth_unit
 
+    def non_addr_cmp(self, attr, other, ascending):
+        me_attr = getattr(self, attr) if hasattr(self, attr) else ''
+        if me_attr is None:
+            me_attr = ''
+        oth_attr = getattr(other, attr) if hasattr(other, attr) else ''
+        if oth_attr is None:
+            oth_attr = ''
+        return me_attr >= oth_attr if ascending else me_attr <= oth_attr
+
     @staticmethod
     def get(path):
         voters = []

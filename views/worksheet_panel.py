@@ -31,7 +31,6 @@ class WorksheetPanel(wx.Panel):
 
         self.voter_panel = VoterPanel(self)
         self.residence_panel = ResidencePanel(self)
-        self.voter_panel.Hide()
 
         bottom_layout.Add(self.voter_panel, 1, wx.ALL | wx.EXPAND, 5)
         bottom_layout.Add(self.residence_panel, 1, wx.ALL | wx.EXPAND, 5)
@@ -40,7 +39,7 @@ class WorksheetPanel(wx.Panel):
 
         self.SetSizer(layout)
 
-        self.nhood_list_ctrl.Select(0)
+        controller.init_view(self)
 
     def build_nhood_panel(self, parent):
         panel = wx.Panel(parent, wx.ID_ANY)
@@ -104,16 +103,20 @@ class WorksheetPanel(wx.Panel):
         self.nhood_list_ctrl.SetColumns([
             olv.ColumnDefn('My Neighborhoods', 'left', 300, valueGetter='name'),
         ])
-        nhoods = list(gbl.dataset.my_neighborhoods.values())
-        self.nhood_list_ctrl.SetObjects(nhoods)
-        self.nhood_list_ctrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.nhood_select)
+        self.nhood_list_ctrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.nhood_list_selected)
         layout.Add(self.nhood_list_ctrl, 1, wx.ALL | wx.EXPAND, 5)
 
         panel.SetSizer(layout)
 
         return panel
 
-    def nhood_select(self, evt):
+    def load_nhood_list(self, nhoods):
+        self.nhood_list_ctrl.SetObjects(list(nhoods.values()))
+
+    def nhood_select(self, idx):
+        self.nhood_list_ctrl.Select(idx)
+
+    def nhood_list_selected(self, evt):
         nhood = self.nhood_list_ctrl.GetSelectedObject()
         if self.voter_panel.IsShown():
             self.voter_panel.load_voters(nhood.voters)
@@ -160,7 +163,7 @@ class WorksheetPanel(wx.Panel):
 
         nhood = self.nhood_list_ctrl.GetSelectedObject()
 
-        controller.show_grf(choice['name'], nhood)
+        controller.show_turnout_grf(choice['name'], nhood)
 
     def build_turnout_graph_list_panel(self, parent):
         panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
@@ -169,8 +172,8 @@ class WorksheetPanel(wx.Panel):
 
         flags = wx.LC_REPORT | wx.SUNKEN_BORDER
         self.turnout_grf_list_ctrl = olv.ObjectListView(panel, wx.ID_ANY,
-                                                size=(-1, -1),
-                                                style=flags)
+                                                        size=(-1, -1),
+                                                        style=flags)
         self.turnout_grf_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
         self.turnout_grf_list_ctrl.SetColumns([
             olv.ColumnDefn('Turnout', 'left', 250, 'name'),
@@ -210,11 +213,22 @@ class WorksheetPanel(wx.Panel):
         layout.Add(lbl, 0, wx.ALL, 5)
 
         show_grf_btn = uil.toolbar_button(panel, 'Show Graph')
+        show_grf_btn.Bind(wx.EVT_BUTTON, self.on_show_makeup_graph)
         layout.Add(show_grf_btn, 0, wx.ALL, 5)
 
         panel.SetSizer(layout)
 
         return panel
+
+    def on_show_makeup_graph(self, evt):
+        choice = self.makeup_grf_list_ctrl.GetSelectedObject()
+        if not choice:
+            uil.inform(self, 'No graph selected!')
+            return
+
+        nhood = self.nhood_list_ctrl.GetSelectedObject()
+
+        controller.show_makeup_grf(choice['name'], nhood)
 
     def build_makeup_graph_list_panel(self, parent):
         panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
@@ -222,19 +236,19 @@ class WorksheetPanel(wx.Panel):
         layout = wx.BoxSizer(wx.VERTICAL)
 
         flags = wx.LC_REPORT | wx.SUNKEN_BORDER
-        grf_list_ctrl = olv.ObjectListView(panel, wx.ID_ANY,
-                                                size=(-1, -1),
-                                                style=flags)
-        grf_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
-        grf_list_ctrl.SetColumns([
+        self.makeup_grf_list_ctrl = olv.ObjectListView(panel, wx.ID_ANY,
+                                                       size=(-1, -1),
+                                                       style=flags)
+        self.makeup_grf_list_ctrl.SetBackgroundColour(gbl.COLOR_SCHEME['lstHdr'])
+        self.makeup_grf_list_ctrl.SetColumns([
             olv.ColumnDefn('Composition', 'left', 250, 'name')
         ])
-        grf_list_ctrl.SetObjects([
-            {'name': 'All Voters'},
+        self.makeup_grf_list_ctrl.SetObjects([
             {'name': 'Age Group'},
-            {'name': 'Gender'}
+            {'name': 'Gender'},
+            {'name': 'Score'},
         ])
-        layout.Add(grf_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+        layout.Add(self.makeup_grf_list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
 
         panel.SetSizer(layout)
         return panel

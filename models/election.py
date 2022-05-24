@@ -37,14 +37,6 @@ class Election(object):
         return 5
 
     @staticmethod
-    def get_my():
-        return Election.get('my')
-
-    @staticmethod
-    def get_bst():
-        return Election.get('bst')
-
-    @staticmethod
     def get(path):
         elections = []
         if not os.path.exists(path):

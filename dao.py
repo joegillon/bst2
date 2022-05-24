@@ -4,10 +4,18 @@ import pandas as pd
 import pickle
 from models.election import Election
 from models.voter import flds as voter_flds
-from models.voter_hx import flds as hx_flds
-from models.ballot import flds as ballot_flds
 import lib.date_lib as dtl
 import globals as gbl
+
+hx_flds = [
+    'voter_id', 'election_id', 'election_date', 'county_id', 'absentee'
+]
+
+ballot_flds = [
+    'voter_id', 'county_id', 'party',
+    'last_name', 'first_name', 'middle_name', 'name_suffix',
+    'street_address', 'city', 'zipcode'
+]
 
 
 def import_sos_elections(qvf_file):

@@ -2,9 +2,6 @@ import wx
 import ObjectListView as olv
 import globals as gbl
 import lib.ui_lib as uil
-import controllers.worksheet_controller as controller
-from views.turonout_menu import TurnoutMenu
-from controllers.voter_controller import VoterController
 
 
 class VoterPanel(wx.Panel):
@@ -24,10 +21,6 @@ class VoterPanel(wx.Panel):
         self.SetSizer(layout)
 
         self.addr_sort_asc = True
-
-        # self.turnout_menu = TurnoutMenu(self)
-        #
-        # self.controller = VoterController(self)
 
     def build_tb_panel(self, parent):
         panel = wx.Panel(parent, wx.ID_ANY, wx.DefaultPosition)
@@ -113,9 +106,3 @@ class VoterPanel(wx.Panel):
 
     def default_sort(self):
         self.voter_list_ctrl.SortBy(0)
-
-    def get_list(self):
-        return self.voter_list_ctrl.GetObjects()
-
-    def load_my_list(self, objs):
-        self.voter_list_ctrl.SetObjects(objs)

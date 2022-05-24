@@ -1,9 +1,8 @@
-import os
 import pandas as pd
 import globals as gbl
 
 
-def all_gdf(nhood):
+def turnout_all_gdf(nhood):
     path = '%s/my_data' % gbl.config['app_path']
 
     edf = pd.read_csv('%s/elections.csv' % path)
@@ -31,7 +30,7 @@ def all_gdf(nhood):
     return pd.DataFrame([eligible, voted], index=['eligible', 'voted'])
 
 
-def gender_gdf(nhood):
+def turnout_gender_gdf(nhood):
     path = '%s/my_data' % gbl.config['app_path']
 
     edf = pd.read_csv('%s/elections.csv' % path)
@@ -74,7 +73,7 @@ def gender_gdf(nhood):
                         index=['Eligible(M)', 'Voted(M)', 'Eligible(F)', 'Voted(F)'])
 
 
-def age_gdf(nhood):
+def turnout_age_gdf(nhood):
     path = '%s/my_data' % gbl.config['app_path']
 
     edf = pd.read_csv('%s/elections.csv' % path)
@@ -156,11 +155,12 @@ def age_gdf(nhood):
     ])
 
 
-def party_gdf(nhood):
-    path = '%s/data/' % os.getcwd()
+def turnout_party_gdf(nhood):
+    path = '%s/my_data' % gbl.config['app_path']
 
-    edf = pd.read_csv(path + 'mi/elections.csv')
-    vdf = pd.read_csv(path + ('voters/%s_voters.csv' % nhood))
+    edf = pd.read_csv('%s/elections.csv' % path)
+    vdf = pd.read_csv('%s/%s_voters.csv' %
+                      (path, nhood.name.replace(' ', '_')))
 
     cols = edf.date[0:15]
 
@@ -198,3 +198,20 @@ def party_gdf(nhood):
 
     return pd.DataFrame([eligible_d, voted_d, eligible_r, voted_r],
                         index=['Eligible(D)', 'Voted(D)', 'Eligible(R)', 'Voted(R)'])
+
+
+def makeup_age_gdf(nhood):
+    import matplotlib.pyplot as plt
+
+    path = '%s/my_data' % gbl.config['app_path']
+
+    vdf = pd.read_csv('%s/%s_voters.csv' %
+                      (path, nhood.name.replace(' ', '_')))
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    ax.set_title('Age Groups')
+    vdf.age_group.value_counts().plot.pie(
+        y='test', legend=False, autopct='%1.0f%%', ax=ax
+    )
+    plt.ylabel(None)
+    plt.show()

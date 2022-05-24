@@ -3,6 +3,7 @@ dist
 unzip
 	folders
 		sos files - smallest superset
+		voters, hx, elections, streets
 	config
 		state, city, sos file names?
 	.exe

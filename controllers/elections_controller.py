@@ -16,6 +16,6 @@ def save(elections):
 
 
 def is_my_elections(oth_elections):
-    my_keys = set([election.id for election in glb.dataset.my_elections])
+    my_keys = set([election.id for election in gbl.dataset.my_elections])
     oth_keys = set([election.id for election in oth_elections])
     return my_keys - oth_keys == []
